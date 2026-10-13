@@ -1,0 +1,1036 @@
+<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="description" content="Interactive virtual lab for estimating minor losses in a pipe system"></head><body>
+<title>Minor Losses Virtual Lab</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Semi+Condensed:wght@500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+/* Layout: sticky tab bar over one workbench panel at a time; the simulator is a two-column stage (rig drawing + instrument rail) with the observation table underneath. */
+:root{
+  --font-ui:'Barlow',system-ui,-apple-system,'Segoe UI',sans-serif;
+  --font-head:'Barlow Semi Condensed','Barlow',system-ui,sans-serif;
+  --font-mono:'JetBrains Mono',ui-monospace,Menlo,Consolas,monospace;
+  --bg:#eef2f4; --surface:#ffffff; --surface2:#f4f7f8; --ink:#12232e; --muted:#57697a; --line:#d2dce2;
+  --accent:#d9500d; --accent-ink:#ffffff; --accent-soft:#fde8dc;
+  --water:#1f8fd6; --water-soft:#a9d6f2; --pipe:#56646f; --pipe-in:#d3dbe0;
+  --stage:#e2e9ed; --frame:#27415f; --board:#fbfcfd; --glass:#eef3f6; --glass-line:#9fb0bb; --grid:#dbe3e8; --hose:#6b7b87;
+  --bench-top:#e4570f; --bench-body:#f5f7f8; --bench-line:#c9d3d9; --sump:#243541;
+  --lcd-bg:#cbd8b5; --lcd-ink:#1c2b12; --brass:#b8893a;
+  --good:#1f7a39; --warn:#9a5a00; --bad:#b0214a; --good-bg:#e2f3e6; --warn-bg:#fdf0d9; --bad-bg:#fbe3ea;
+  --c1:#2563c9; --c2:#0b8a78; --c3:#7a4fd1; --c4:#c2255c; --c5:#a8680a; --c6:#566574;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0d171d; --surface:#14212a; --surface2:#1a2a35; --ink:#e5edf2; --muted:#93a7b5; --line:#2a3d4a;
+  --accent:#ff7a33; --accent-ink:#1a0d05; --accent-soft:#3a2214;
+  --water:#47b0ee; --water-soft:#1d4a68; --pipe:#8fa2b0; --pipe-in:#26343e;
+  --stage:#101c24; --frame:#5d83b0; --board:#1b2b36; --glass:#223441; --glass-line:#4b6372; --grid:#27394560; --hose:#8da0ae;
+  --bench-top:#ef6a22; --bench-body:#1d2d38; --bench-line:#33495a; --sump:#0a1218;
+  --lcd-bg:#b9c8a2; --lcd-ink:#1c2b12; --brass:#c79a4c;
+  --good:#58c27a; --warn:#f0b04a; --bad:#ff7d9d; --good-bg:#16301f; --warn-bg:#3a2d12; --bad-bg:#3b1824;
+  --c1:#6aa2ff; --c2:#3fd0b8; --c3:#b497ff; --c4:#ff7aa8; --c5:#e5ae55; --c6:#a3b3c1; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0d171d; --surface:#14212a; --surface2:#1a2a35; --ink:#e5edf2; --muted:#93a7b5; --line:#2a3d4a;
+  --accent:#ff7a33; --accent-ink:#1a0d05; --accent-soft:#3a2214;
+  --water:#47b0ee; --water-soft:#1d4a68; --pipe:#8fa2b0; --pipe-in:#26343e;
+  --stage:#101c24; --frame:#5d83b0; --board:#1b2b36; --glass:#223441; --glass-line:#4b6372; --grid:#27394560; --hose:#8da0ae;
+  --bench-top:#ef6a22; --bench-body:#1d2d38; --bench-line:#33495a; --sump:#0a1218;
+  --lcd-bg:#b9c8a2; --lcd-ink:#1c2b12; --brass:#c79a4c;
+  --good:#58c27a; --warn:#f0b04a; --bad:#ff7d9d; --good-bg:#16301f; --warn-bg:#3a2d12; --bad-bg:#3b1824;
+  --c1:#6aa2ff; --c2:#3fd0b8; --c3:#b497ff; --c4:#ff7aa8; --c5:#e5ae55; --c6:#a3b3c1; color-scheme:dark}
+
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--font-ui);font-size:15px;line-height:1.55;padding-inline:16px}
+.app{max-width:1280px;margin-inline:auto;padding-block:18px 56px}
+h1,h2,h3,h4{font-family:var(--font-head);font-weight:600;line-height:1.15;margin:0;text-wrap:balance}
+p{margin:0 0 .8em;max-width:68ch}
+button{font:inherit;color:inherit;cursor:pointer}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px;border-radius:3px}
+sub,sup{line-height:0}
+.mono{font-family:var(--font-mono);font-variant-numeric:tabular-nums}
+
+.top{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:10px 24px;padding-bottom:14px}
+.eyebrow{font-family:var(--font-mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.top h1{font-size:clamp(26px,4.4vw,40px);font-weight:700;margin-top:4px}
+.spec{display:flex;flex-wrap:wrap;gap:6px}
+.chip{font-family:var(--font-mono);font-size:12px;border:1px solid var(--line);background:var(--surface);padding:3px 9px;border-radius:99px;color:var(--muted)}
+.chip b{color:var(--ink);font-weight:600}
+
+.tabs{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;display:flex;gap:2px;overflow-x:auto;background:var(--bg);border-bottom:2px solid var(--line);margin-inline:-16px;padding-inline:16px;scrollbar-width:thin}
+.tabs button{flex:none;background:none;border:0;border-bottom:3px solid transparent;margin-bottom:-2px;padding:11px 14px 9px;font-family:var(--font-head);font-weight:600;font-size:17px;color:var(--muted);white-space:nowrap}
+.tabs button:hover{color:var(--ink)}
+.tabs button[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--accent)}
+
+.panel{padding-top:22px}
+.panel[hidden]{display:none}
+.doc{max-width:900px}
+.doc h2{font-size:30px;margin-bottom:12px}
+.doc h3{font-size:21px;margin:26px 0 8px}
+.doc ul,.doc ol{margin:0 0 1em;padding-left:1.3em;max-width:68ch}
+.doc li{margin-bottom:.35em}
+.callout{background:var(--surface);border:1px solid var(--line);border-left:4px solid var(--accent);padding:12px 16px;margin:14px 0;border-radius:4px;max-width:68ch}
+.formula{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:12px 18px;margin:12px 0;font-size:19px;overflow-x:auto;max-width:68ch}
+.formula math{font-size:1.15em}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px;margin:12px 0}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:14px 16px;min-width:0}
+.card h4{font-size:17px;margin-bottom:6px}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:3px 14px;margin:0;font-size:14px}
+.kv dt{color:var(--muted)} .kv dd{margin:0;font-family:var(--font-mono);font-variant-numeric:tabular-nums}
+.btn{background:var(--ink);color:var(--bg);border:0;border-radius:6px;padding:9px 16px;font-weight:600}
+.btn:hover{opacity:.88}
+.btn.accent{background:var(--accent);color:var(--accent-ink)}
+.btn.ghost{background:transparent;color:var(--ink);border:1px solid var(--line)}
+.btn.ghost:hover{border-color:var(--ink)}
+.btn.small{padding:5px 10px;font-size:13px}
+.btn[disabled]{opacity:.45;cursor:not-allowed}
+.cta{margin-top:18px;display:flex;gap:10px;flex-wrap:wrap}
+table.parts{border-collapse:collapse;width:100%;max-width:760px;font-size:14px}
+table.parts th,table.parts td{border-bottom:1px solid var(--line);padding:7px 10px 7px 0;text-align:left;vertical-align:top}
+table.parts th{font-family:var(--font-mono);font-size:12px;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);font-weight:400}
+
+/* simulator */
+.sim{display:grid;grid-template-columns:minmax(0,1fr) 372px;gap:16px;align-items:start}
+.stage{position:relative;background:var(--stage);border:1px solid var(--line);border-radius:10px;overflow-x:auto;overflow-y:hidden}
+.stage svg{display:block;width:100%;min-width:660px;height:auto;touch-action:manipulation;user-select:none}
+.stage .hint{font-size:13px;color:var(--muted);padding:8px 14px 12px;min-width:660px}
+.tip{position:absolute;pointer-events:none;background:var(--ink);color:var(--bg);font:12px var(--font-mono);padding:4px 8px;border-radius:4px;white-space:nowrap;z-index:5}
+.rail{display:flex;flex-direction:column;gap:12px;min-width:0}
+.rail .card h4{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.rail .card h4 small{font:12px var(--font-mono);color:var(--muted);font-weight:400}
+.steps{list-style:none;margin:0;padding:0;display:grid;gap:5px;font-size:14px}
+.steps li{display:grid;grid-template-columns:20px 1fr;gap:8px;align-items:start;color:var(--muted)}
+.steps li i{width:18px;height:18px;border:2px solid var(--line);border-radius:50%;margin-top:2px;display:grid;place-items:center;font-size:11px;font-style:normal;color:var(--accent-ink)}
+.steps li.done{color:var(--ink)}
+.steps li.done i{background:var(--good);border-color:var(--good)}
+.steps li.done i::after{content:"✓"}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.ctl{display:grid;grid-template-columns:92px 1fr 44px;gap:8px;align-items:center;font-size:14px;margin:8px 0}
+.ctl output{font:13px var(--font-mono);text-align:right}
+input[type=range]{width:100%;accent-color:var(--accent)}
+.readouts{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.ro{background:var(--surface2);border-radius:6px;padding:7px 10px}
+.ro span{display:block;font:11px var(--font-mono);letter-spacing:.05em;text-transform:uppercase;color:var(--muted)}
+.ro b{font:600 18px var(--font-mono);font-variant-numeric:tabular-nums}
+.status{display:inline-flex;align-items:center;gap:7px;font:600 13px var(--font-mono)}
+.status::before{content:"";width:9px;height:9px;border-radius:50%;background:var(--muted)}
+.status.steady::before{background:var(--good)} .status.settle::before{background:var(--warn);animation:blink 1s infinite}
+@keyframes blink{50%{opacity:.25}}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px}
+.chips button{border:1px solid var(--line);background:var(--surface2);border-radius:99px;padding:3px 10px;font-size:13px}
+.chips button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.zoom{background:var(--surface2);border-radius:8px;padding:4px}
+.zoom svg{display:block;width:100%;height:auto}
+.zoom text{font-family:var(--font-mono);fill:var(--muted)}
+.inputs{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:10px 0 8px}
+.inputs label{font:12px var(--font-mono);color:var(--muted);display:grid;gap:3px}
+.inputs input{font:600 17px var(--font-mono);padding:7px 9px;border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:6px;width:100%}
+.msg{font-size:13.5px;border-radius:6px;padding:8px 10px;margin-top:8px;display:none}
+.msg.show{display:block}
+.msg.ok{background:var(--good-bg);color:var(--good)} .msg.warn{background:var(--warn-bg);color:var(--warn)} .msg.bad{background:var(--bad-bg);color:var(--bad)}
+.help{font:12.5px var(--font-mono);color:var(--muted);margin-top:6px}
+.check{display:flex;gap:7px;align-items:center;font-size:13px;color:var(--muted);margin-top:8px}
+
+/* table */
+.tablewrap{overflow-x:auto;background:var(--surface);border:1px solid var(--line);border-radius:8px}
+table.obs{border-collapse:collapse;width:100%;min-width:900px;font-size:14px}
+table.obs th{background:var(--surface2);font-weight:600;font-size:12.5px;line-height:1.25;padding:9px 8px;border:1px solid var(--line);text-align:center}
+table.obs td{border:1px solid var(--line);padding:6px 8px;text-align:center;font-family:var(--font-mono);font-variant-numeric:tabular-nums}
+table.obs td.fit{font-family:var(--font-ui);text-align:left}
+table.obs tr.data{cursor:pointer}
+table.obs tr.data:hover td{background:var(--surface2)}
+table.obs tr.sel td{background:var(--accent-soft)}
+table.obs td.empty{padding:26px;color:var(--muted);font-family:var(--font-ui)}
+table.obs .x{background:none;border:0;color:var(--muted);font-size:16px;padding:0 6px}
+table.obs .x:hover{color:var(--bad)}
+.sw{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:6px}
+.tools{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:0 0 10px}
+.sheet{font-family:var(--font-mono);font-size:14px;background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:16px 18px;display:grid;gap:7px;overflow-x:auto;max-width:860px}
+.sheet div{display:grid;grid-template-columns:150px 1fr;gap:12px;min-width:560px}
+.sheet div span:first-child{color:var(--muted)}
+.sheet .res{color:var(--accent);font-weight:600}
+.two{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px;align-items:start}
+
+/* results */
+.chart{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:8px;overflow-x:auto}
+.chart svg{display:block;width:100%;min-width:560px;height:auto}
+.chart text{font-family:var(--font-mono);font-size:12px;fill:var(--muted)}
+.chart .ax{stroke:var(--muted)} .chart .gl{stroke:var(--grid)}
+.bar{height:8px;background:var(--surface2);border-radius:4px;min-width:90px;position:relative}
+.bar i{position:absolute;inset:0 auto 0 0;border-radius:4px}
+
+/* quiz */
+.q{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:14px 16px;margin-bottom:12px;max-width:760px}
+.q h4{font-size:18px;margin-bottom:8px}
+.q label{display:flex;gap:9px;align-items:flex-start;padding:6px 8px;border-radius:6px;cursor:pointer}
+.q label:hover{background:var(--surface2)}
+.q label.right{background:var(--good-bg)} .q label.wrong{background:var(--bad-bg)}
+.q .why{font-size:14px;color:var(--muted);margin-top:8px;display:none}
+.q.done .why{display:block}
+.score{font:600 22px var(--font-head)}
+
+.water{fill:none;stroke:var(--water);stroke-dasharray:5 9;opacity:0}
+.flowing .water{opacity:1;animation:dash var(--dd,1s) linear infinite}
+.flowing .stream{opacity:1;animation:dash .5s linear infinite}
+@keyframes dash{to{stroke-dashoffset:-14}}
+@media (prefers-reduced-motion:reduce){.flowing .water,.flowing .stream,.status.settle::before{animation:none}}
+
+
+.anim{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:16px;align-items:start}
+.animstage{background:var(--stage);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.animstage canvas{display:block;width:100%;height:auto}
+.legend{display:flex;flex-wrap:wrap;gap:6px 18px;padding:8px 14px 12px;font-size:13px;color:var(--muted)}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px;vertical-align:-1px}
+.legend .b{background:var(--water)} .legend .o{background:var(--accent)}
+.animside h4{font-size:20px;margin:4px 0 6px}
+.animside p{font-size:14.5px}
+.animside ul{margin:0 0 4px;padding-left:1.2em;font-size:14px}
+.animside li{margin-bottom:4px}
+@media (max-width:1020px){.anim{grid-template-columns:minmax(0,1fr)}}
+@media (max-width:1020px){.sim{grid-template-columns:minmax(0,1fr)} .two{grid-template-columns:minmax(0,1fr)}}
+@media (max-width:520px){.tabs button{padding:10px 11px 8px;font-size:16px} .ctl{grid-template-columns:78px 1fr 40px}}
+</style>
+
+<div class="app">
+  <header class="top">
+    <div>
+      <div class="eyebrow">Experiment 6 · Fluid Mechanics Laboratory</div>
+      <h1>Estimation of Minor Losses in a Pipe System</h1>
+    </div>
+    <div class="spec" aria-label="Rig specification">
+      <span class="chip">d <b>18 mm</b></span><span class="chip">D <b>24 mm</b></span><span class="chip">Water <b>28 °C</b></span>
+      <button class="btn small ghost" id="b-sound" type="button" aria-pressed="true">Sound: On</button>
+      <button class="btn small ghost" id="b-theme" type="button" aria-label="Change theme">Theme: Auto</button>
+    </div>
+  </header>
+
+  <nav class="tabs" id="tabs" role="tablist" aria-label="Lab sections">
+    <button role="tab" data-tab="aim" aria-selected="true">Aim</button>
+    <button role="tab" data-tab="theory" aria-selected="false">Theory</button>
+    <button role="tab" data-tab="animation" aria-selected="false">Animation</button>
+    <button role="tab" data-tab="procedure" aria-selected="false">Procedure</button>
+    <button role="tab" data-tab="simulator" aria-selected="false">Simulator</button>
+    <button role="tab" data-tab="observations" aria-selected="false">Observations &amp; Calculations</button>
+    <button role="tab" data-tab="results" aria-selected="false">Results &amp; Inference</button>
+    <button role="tab" data-tab="viva" aria-selected="false">Viva</button>
+  </nav>
+
+  <!-- AIM -->
+  <section class="panel doc" id="p-aim">
+    <h2>Aim</h2>
+    <p>To determine the loss coefficient (K) for flow through pipes due to sudden enlargement, sudden contraction and due to pipe fittings like bends and elbow.</p>
+    <div class="callout"><b>What you will do here.</b> Run the bench pump, set the flow, read the water columns of a multi-tube manometer for each fitting, record h<sub>1</sub> and h<sub>2</sub>, and work out K = 2g&Delta;h / V². The columns settle, drift and need reading off a ruler, as on the real rig, so your numbers will differ a little each time.</div>
+    <h3>After this experiment you can</h3>
+    <ul>
+      <li>Explain why a change in pipe area or flow direction wastes energy as eddies and heat.</li>
+      <li>Measure the head loss across a fitting from a pair of manometer tubes.</li>
+      <li>Calculate the loss coefficient K for an enlargement, a contraction, a long bend, a short bend and a 90° elbow.</li>
+      <li>Show that head loss varies as the square of velocity, so K stays nearly constant at high Reynolds number.</li>
+    </ul>
+    <div class="cta"><button class="btn accent" data-go="theory">Read the theory</button><button class="btn ghost" data-go="simulator">Skip to the simulator</button></div>
+  </section>
+
+  <!-- THEORY -->
+  <section class="panel doc" id="p-theory" hidden>
+    <h2>Theory</h2>
+    <h3>Basic concept</h3>
+    <p>When fluid flows through a pipe it meets hydraulic resistances of two types: (i) viscous-frictional resistance and (ii) local resistance. Viscous-frictional resistance along the pipe is called the <b>major loss</b> of energy. Local resistances are called <b>minor losses</b>.</p>
+    <p>Local resistances come from a change of velocity in magnitude, in direction, or both. The change generates large-scale turbulence through the formation of eddies, and part of the energy of the fluid is dissipated as heat. Changes of cross-section, bends, valves and fittings of all types fall in this group. In short pipes, minor losses can be larger than the friction losses, so they must be determined.</p>
+    <p>All minor losses vary as the square of the mean velocity, so they are written as a fraction of the velocity head:</p>
+    <div class="formula"><math><msub><mi>h</mi><mi>L</mi></msub><mo>=</mo><msub><mi>K</mi><mi>L</mi></msub><mfrac><msup><mi>V</mi><mn>2</mn></msup><mrow><mn>2</mn><mi>g</mi></mrow></mfrac></math></div>
+    <p>Here h<sub>L</sub> is the loss of energy per unit weight (m), V the average velocity in the pipe (m/s), g the acceleration due to gravity and K<sub>L</sub> the dimensionless loss coefficient. K<sub>L</sub> is constant at high Reynolds number for a particular flow geometry.</p>
+    <h3>Sudden enlargement</h3>
+    <div class="formula"><math><msub><mi>h</mi><mi>L</mi></msub><mo>=</mo><mfrac><msup><mrow><mo>(</mo><mi>V</mi><mo>−</mo><msub><mi>V</mi><mn>1</mn></msub><mo>)</mo></mrow><mn>2</mn></msup><mrow><mn>2</mn><mi>g</mi></mrow></mfrac></math></div>
+    <p>V is the velocity in the smaller pipe and V<sub>1</sub> the velocity in the larger pipe. Using continuity this simplifies to h<sub>L</sub> = K<sub>L</sub>V²/2g with</p>
+    <div class="formula"><math><msub><mi>K</mi><mi>L</mi></msub><mo>=</mo><msup><mrow><mo>[</mo><mn>1</mn><mo>−</mo><mfrac><msub><mi>A</mi><mn>1</mn></msub><msub><mi>A</mi><mn>2</mn></msub></mfrac><mo>]</mo></mrow><mn>2</mn></msup></math></div>
+    <p>A<sub>1</sub> is the cross-sectional area of the smaller pipe and A<sub>2</sub> that of the larger pipe, both in m². For this rig A<sub>1</sub>/A<sub>2</sub> = (18/24)² = 0.5625, so the theoretical K<sub>L</sub> is 0.191.</p>
+    <h3>Working formulae for this experiment</h3>
+    <table class="parts" aria-label="Formulae">
+      <tr><th>Quantity</th><th>Symbol</th><th>Unit</th><th>Type</th><th>Expression</th></tr>
+      <tr><td>Diameter of test pipe</td><td>d</td><td>m</td><td>Given</td><td>18 mm and 24 mm</td></tr>
+      <tr><td>Volume collected</td><td>V</td><td>m³</td><td>Measured</td><td>Read from the hydraulic bench scale</td></tr>
+      <tr><td>Time to collect</td><td>t</td><td>s</td><td>Measured</td><td>Stopwatch</td></tr>
+      <tr><td>Temp. of water / kinematic viscosity</td><td>ν</td><td>m²/s</td><td>Measured / table</td><td>0.84 × 10⁻⁶ at 28 °C</td></tr>
+      <tr><td>Manometer readings</td><td>h<sub>1</sub>, h<sub>2</sub></td><td>m</td><td>Measured</td><td>Scale calibrated in mm</td></tr>
+      <tr><td>Timed flow rate</td><td>Q<sub>t</sub></td><td>m³/s</td><td>Calculated</td><td>Q = V / t (or L/min ÷ 60000)</td></tr>
+      <tr><td>Velocity</td><td>V</td><td>m/s</td><td>Calculated</td><td>V = Q / A</td></tr>
+      <tr><td>Dynamic head</td><td>V²/2g</td><td>m</td><td>Calculated</td><td>V² / 2g</td></tr>
+      <tr><td>Reynolds number</td><td>Re</td><td>–</td><td>Calculated</td><td>Re = V d / ν</td></tr>
+      <tr><td>Head loss</td><td>&Delta;h</td><td>m</td><td>Calculated</td><td>&Delta;h = h<sub>1</sub> − h<sub>2</sub> across the fitting</td></tr>
+      <tr><td>Loss coefficient</td><td>K</td><td>–</td><td>Calculated</td><td>K = 2g&Delta;h / V²</td></tr>
+    </table>
+    <div class="cta"><button class="btn accent" data-go="animation">See it animated</button></div>
+  </section>
+
+  <!-- ANIMATION -->
+  <section class="panel" id="p-animation" hidden>
+    <div class="doc"><h2>Why do fittings waste energy?</h2>
+      <p>Pick a fitting and watch the water. Blue streaks are the main stream. Orange streaks are water trapped in eddies, where the flow energy turns into heat. The line under the pipe is the total energy of the flow, and it drops across the fitting by h<sub>L</sub> = K·V²/2g. Shapes are exaggerated and not to scale.</p></div>
+    <div class="anim">
+      <div class="animstage">
+        <canvas id="acv" role="img" aria-label="Animated side view of water flowing through the chosen fitting, showing the main stream, the eddies and the drop in total energy"></canvas>
+        <div class="legend"><span><i class="b"></i>Main flow</span><span><i class="o"></i>Eddy: energy lost as heat</span></div>
+      </div>
+      <div class="card animside">
+        <div class="chips" id="achips" role="group" aria-label="Choose a fitting"></div>
+        <div class="ctl"><label for="a-q">Flow rate</label><input type="range" id="a-q" min="5" max="22" step="0.5" value="15"><output id="a-qo">15</output></div>
+        <div class="row" style="margin-bottom:10px"><button class="btn small ghost" id="a-pause" type="button">Pause</button><label class="check" style="margin:0"><input type="checkbox" id="a-ed" checked> Shade eddy zones</label></div>
+        <h4 id="a-title"></h4><p id="a-text"></p><ul id="a-notes"></ul>
+        <div class="row" style="margin-top:10px"><button class="btn small accent" data-go="simulator">Back to the simulator</button></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- PROCEDURE -->
+  <section class="panel doc" id="p-procedure" hidden>
+    <h2>Procedure</h2>
+    <h3>Experimental setup</h3>
+    <p>The apparatus consists of two pipes connected through a common manifold. The pipes are fitted with a bend, an elbow, a globe valve, a gate valve and so on. A sudden enlargement and a sudden contraction are also provided in the pipe. Water is supplied to the manifold through an inlet valve in the supply pipeline connected to a constant overhead water tank. Pressure tappings on the upstream and downstream ends of each fitting give the pressure head difference across the fitting, from which the head loss is computed. The tappings are connected to a multi-tube U-tube differential manometer. The discharge through each pipe is regulated by a valve near the outlet end of each pipe.</p>
+    <div class="grid2">
+      <div class="card"><h4>Specification</h4>
+        <dl class="kv"><dt>Smaller pipe, d</dt><dd>18 mm</dd><dt>Larger pipe, D</dt><dd>24 mm</dd><dt>Area A₁</dt><dd>2.54 × 10⁻⁴ m²</dd><dt>Area A₂</dt><dd>4.52 × 10⁻⁴ m²</dd><dt>g</dt><dd>9.81 m/s²</dd><dt>Water</dt><dd>28 °C, ν = 0.84 × 10⁻⁶ m²/s</dd><dt>Manometer scale</dt><dd>0 to 440 mm</dd></dl>
+      </div>
+      <div class="card"><h4>Fittings on the rig</h4>
+        <dl class="kv"><dt>1</dt><dd>Sudden enlargement (tubes 1, 2)</dd><dt>2</dt><dd>Sudden contraction (3, 4)</dd><dt>3</dt><dd>Long bend (5, 6)</dd><dt>4</dt><dd>Short bend (7, 8)</dd><dt>5</dt><dd>90° elbow (9, 10)</dd><dt>6</dt><dd>Mitre bend (11, 12), optional</dd></dl>
+      </div>
+    </div>
+    <h3>Procedure</h3>
+    <ol>
+      <li>The flow and bench control valve is opened parallelly for maximum discharge.</li>
+      <li>Note down the manometer reading and flow rate of water.</li>
+      <li>The above procedure is repeated for different discharges by controlling the gate valve, and readings are noted down in the table.</li>
+    </ol>
+    <h3>In the virtual lab</h3>
+    <ol>
+      <li>Open the <b>Simulator</b>. Click the pump switch on the bench to start the pump.</li>
+      <li>Open the red bench valve and the red valve on the rig. Click a wheel to open it by a quarter turn, drag it round, or use the sliders. The quick buttons set 10, 15 or 20 L/min for you.</li>
+      <li>Wait until the readout says <b>Steady</b>. The digital meter on the bench shows the flow in L/min.</li>
+      <li>Click a numbered fitting on the pipe, or pick it in the reader. Read h<sub>1</sub> (upstream tube) and h<sub>2</sub> (downstream tube) off the magnified ruler, type them in and press <b>Record</b>.</li>
+      <li>Repeat for every fitting, then for two more flow rates. The table fills in the head loss, flow rate, velocity, V²/2g and K.</li>
+      <li>If a column runs dry at high flow, use the hand pump beside the manometer board to raise the static level, then read again.</li>
+    </ol>
+    <h3>Precautions</h3>
+    <ul>
+      <li>Read the bottom of the meniscus with your eye level with it. Do not read while the columns are still moving.</li>
+      <li>Keep the water free of air bubbles. Air in a tapping line gives a false head difference.</li>
+      <li>Take every pair of readings at one steady flow rate.</li>
+    </ul>
+    <div class="cta"><button class="btn accent" data-go="simulator">Start the experiment</button></div>
+  </section>
+
+  <!-- SIMULATOR -->
+  <section class="panel" id="p-simulator" hidden>
+    <div class="sim">
+      <div>
+        <div class="stage" id="stage">
+          <svg id="rig" viewBox="0 0 880 700" role="img" aria-label="Interactive drawing of the minor losses rig: pipe loop with six fittings, a twelve-tube manometer board, a pressure gauge and the hydraulics bench with pump switch, flow meter and valve"></svg>
+          <div class="hint">Click the pump switch, then turn the red wheels (click, drag, shift+click to close, or scroll). Click a numbered badge to choose a fitting. Hover a tube for its level.</div>
+          <div class="tip" id="tip" hidden></div>
+        </div>
+      </div>
+      <aside class="rail">
+        <div class="card"><h4>Experiment steps <small id="stepcount"></small></h4><ul class="steps" id="steps"></ul></div>
+        <div class="card"><h4>Controls</h4>
+          <div class="row"><button class="btn small accent" id="b-pump" aria-pressed="false">Pump off</button>
+            <button class="btn small ghost" data-flow="10">10 L/min</button><button class="btn small ghost" data-flow="15">15 L/min</button><button class="btn small ghost" data-flow="20">20 L/min</button><button class="btn small ghost" data-flow="0">Stop</button></div>
+          <div class="ctl"><label for="s-bench">Bench valve</label><input type="range" id="s-bench" min="0" max="100" value="0"><output id="o-bench">0%</output></div>
+          <div class="ctl"><label for="s-rig">Rig valve</label><input type="range" id="s-rig" min="0" max="100" value="0"><output id="o-rig">0%</output></div>
+          <div class="row"><span style="font-size:14px">Static level</span><button class="btn small ghost" id="b-down" aria-label="Release air, lower static level">− Air release</button><button class="btn small ghost" id="b-up" aria-label="Hand pump, raise static level">+ Hand pump</button><span class="mono" id="o-stat" style="font-size:13px"></span></div>
+        </div>
+        <div class="card"><h4>Live readout <span class="status" id="status">Pump off</span></h4>
+          <div class="readouts">
+            <div class="ro"><span>Flow Q</span><b id="r-q">0.0</b> <small>L/min</small></div>
+            <div class="ro"><span>Velocity V</span><b id="r-v">0.000</b> <small>m/s</small></div>
+            <div class="ro"><span>V²/2g</span><b id="r-vh">0.0</b> <small>mm</small></div>
+            <div class="ro"><span>Reynolds Re</span><b id="r-re">0</b></div>
+          </div>
+        </div>
+        <div class="card"><h4>Read the manometer <small id="sel-name"></small></h4>
+          <div class="chips" id="chips" role="group" aria-label="Choose a fitting"></div>
+          <div class="zoom"><svg id="zoom" viewBox="0 0 340 236" aria-label="Magnified ruler for the two tubes of the selected fitting"></svg></div>
+          <div class="inputs">
+            <label for="in-h1">h₁ upstream (mm)<input id="in-h1" type="number" inputmode="decimal" step="1" min="0" max="440"></label>
+            <label for="in-h2">h₂ downstream (mm)<input id="in-h2" type="number" inputmode="decimal" step="1" min="0" max="440"></label>
+          </div>
+          <div class="row"><button class="btn accent" id="b-rec">Record reading</button><span class="mono" style="font-size:12.5px;color:var(--muted)" id="rec-flow"></span></div>
+          <div class="row" style="margin-top:8px"><button class="btn small ghost" id="b-why" type="button">Why does this fitting lose energy?</button></div>
+          <div class="msg" id="msg" role="status" aria-live="polite"></div>
+          <label class="check"><input type="checkbox" id="c-help"> Show the exact meniscus levels (reading help)</label>
+          <div class="help" id="help" hidden></div>
+        </div>
+      </aside>
+    </div>
+    <div class="tools" style="margin:26px 0 10px"><h3 style="font-size:22px;margin-right:auto">Observations and tabulation</h3><button class="btn small ghost" id="b-reset">Reset rig</button><button class="btn small ghost" id="b-clear2">Clear all readings</button></div>
+    <div class="tablewrap" data-table></div>
+  </section>
+
+  <!-- OBSERVATIONS -->
+  <section class="panel" id="p-observations" hidden>
+    <div class="doc"><h2>Observations &amp; Calculations</h2></div>
+    <div class="tools"><button class="btn small accent" id="b-demo">Run a demo (10, 15, 20 L/min)</button><button class="btn small ghost" id="b-clear">Clear table</button><span style="font-size:13px;color:var(--muted)">Click a row to see its model calculation.</span></div>
+    <div class="tablewrap" data-table></div>
+    <div style="height:18px"></div>
+    <div class="two">
+      <div>
+        <h3 style="font-size:21px;margin-bottom:10px">Model calculation</h3>
+        <div class="sheet" id="sheet"></div>
+      </div>
+      <div class="doc"><h3 style="margin-top:0">Specification</h3>
+        <div class="card"><dl class="kv"><dt>Diameter of smaller pipe, d</dt><dd>= 18 mm</dd><dt>Diameter of larger pipe, D</dt><dd>= 24 mm</dd><dt>A₁ = πd²/4</dt><dd>2.54 × 10⁻⁴ m²</dd><dt>A₂ = πD²/4</dt><dd>4.52 × 10⁻⁴ m²</dd></dl></div>
+        <p style="margin-top:12px;font-size:14px;color:var(--muted)">Velocity is taken in the smaller pipe, so V = Q / A₁ for every fitting.</p>
+      </div>
+    </div>
+    <h3 style="font-size:21px;margin:28px 0 10px">Calculations for all readings</h3>
+    <div id="allcalc" style="display:grid;gap:14px"></div>
+  </section>
+
+  <!-- RESULTS -->
+  <section class="panel" id="p-results" hidden>
+    <div class="doc"><h2>Results &amp; Inference</h2></div>
+    <div id="res-empty" class="card" style="max-width:640px" hidden>
+      <h4>No readings yet</h4><p style="margin-top:6px">Record readings in the simulator, or load a demo run to see how the results page works.</p>
+      <div class="row"><button class="btn accent" data-go="simulator">Go to the simulator</button><button class="btn ghost" id="b-demo2">Load a demo run</button></div>
+    </div>
+    <div id="res-body">
+      <h3 style="font-size:21px;margin-bottom:10px">The loss coefficient for various fittings</h3>
+      <div class="tablewrap" style="max-width:900px"><table class="obs" style="min-width:640px" id="res-table"></table></div>
+      <div class="tools" style="margin-top:10px"><button class="btn small ghost" id="b-copy">Copy results</button><span id="copied" style="font-size:13px;color:var(--muted)"></span></div>
+      <h3 style="font-size:21px;margin:22px 0 10px">Graph: head loss against velocity head</h3>
+      <div class="chart" style="max-width:900px"><svg id="chart" viewBox="0 0 760 380" role="img" aria-label="Head loss in millimetres against velocity head in millimetres for each fitting, with a line through the origin whose slope is K"></svg></div>
+      <p style="font-size:13.5px;color:var(--muted);margin-top:8px">Each line passes through the origin and has slope K, because h<sub>L</sub> = K · V²/2g.</p>
+      <div class="doc"><h3>Inference</h3><div id="infer"></div></div>
+    </div>
+  </section>
+
+  <!-- VIVA -->
+  <section class="panel doc" id="p-viva" hidden>
+    <h2>Viva</h2>
+    <p>Eleven questions on the experiment. Pick an answer and check it to see the reason.</p>
+    <div id="quiz"></div>
+    <div class="row"><button class="btn accent" id="b-score">Show my score</button><span class="score" id="score"></span></div>
+  </section>
+</div>
+
+<script>
+(function(){
+'use strict';
+var $=function(s,r){return (r||document).querySelector(s)}, $$=function(s,r){return Array.prototype.slice.call((r||document).querySelectorAll(s))};
+var G=9.81,DS=0.018,DL=0.024,A1=2.54e-4,A2=4.52e-4,NU=0.84e-6,QMAX=22;
+function clamp(x,a,b){return Math.min(b,Math.max(a,x))}
+function r1(x){return Math.round(x*10)/10}
+
+/* ---------- fittings ---------- */
+var F=[
+ {id:'enl',n:'Sudden enlargement',s:'Enlargement',ab:'ENL',k0:.26,p:.4,c:[90,382],b:[58,382],tap:[[84,430],[81,335]],col:'--c1',req:1},
+ {id:'con',n:'Sudden contraction',s:'Contraction',ab:'CON',k0:.88,p:1.0,c:[90,262],b:[58,262],tap:[[81,300],[84,215]],col:'--c2',req:1},
+ {id:'lng',n:'Long bend',s:'Long bend',ab:'LONG',k0:.34,p:1.7,c:[112,112],b:[132,134],tap:[[84,190],[230,84]],col:'--c3',req:1},
+ {id:'sht',n:'Short bend',s:'Short bend',ab:'SHORT',k0:.57,p:2.4,c:[567,97],b:[552,62],tap:[[480,84],[568,150]],col:'--c4',req:1},
+ {id:'elb',n:'90° elbow',s:'Elbow',ab:'ELBOW',k0:1.40,p:3.1,c:[580,200],b:[608,236],tap:[[580,165],[610,193]],col:'--c5',req:1},
+ {id:'mit',n:'Mitre bend (optional)',s:'Mitre bend',ab:'MITRE',k0:1.10,p:3.8,c:[640,200],b:[672,194],tap:[[622,193],[646,270]],col:'--c6',req:0}
+];
+function portX(n){return 196+(n-1)*27}
+function yOf(mm){return 392-clamp(mm,0,440)*250/440}
+
+/* ---------- state ---------- */
+var S={pump:false,bench:0,rig:0,Qs:0,L:[],stat:340,sel:'enl',rows:[],rowSel:null,touched:false,seenResults:false,help:false,tick:0};
+for(var i=0;i<12;i++)S.L.push(340);
+try{var saved=JSON.parse(localStorage.getItem('minor-loss-rows')||'[]'); if(Array.isArray(saved))S.rows=saved.filter(function(r){return r&&F.some(function(f){return f.id===r.fid})})}catch(e){}
+function saveRows(){try{localStorage.setItem('minor-loss-rows',JSON.stringify(S.rows))}catch(e){}}
+
+function Qtarget(){return S.pump?QMAX*Math.pow(S.bench*S.rig,0.8):0}
+function hashN(s){var h=2166136261;for(var i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619)}return ((h>>>0)%10000)/10000}
+function vhmm(Q){var v=(Q/60000)/A1;return v*v/(2*G)*1000}
+function targetLevels(Q,key){
+  var out=[],blend=clamp(Q/2,0,1),vh=vhmm(Q);
+  for(var i=0;i<12;i++)out.push(S.stat);
+  if(Q<0.05)return out;
+  F.forEach(function(f,i){
+    var n1=(hashN(f.id+'a'+key)-.5)*1.6,n2=(hashN(f.id+'b'+key)-.5)*1.6;
+    var K=f.k0*(1+0.08*(10/Math.max(Q,3)-0.5));
+    var h1=S.stat-f.p*0.6*vh+n1,h2=h1-K*vh+n2;
+    out[2*i]=S.stat+(h1-S.stat)*blend; out[2*i+1]=S.stat+(h2-S.stat)*blend;
+  });
+  return out;
+}
+function steady(){
+  var Qt=Qtarget(); if(Math.abs(Qt-S.Qs)>0.1)return false;
+  var tl=targetLevels(S.Qs,r1(Qt));
+  for(var i=0;i<12;i++){if(Math.abs(clamp(tl[i],0,440)-S.L[i])>0.6)return false}
+  return true;
+}
+
+/* ---------- build the rig ---------- */
+var rig=$('#rig');
+function wheel(id,cx,cy,r){
+  var sp='';for(var i=0;i<6;i++){var a=i*Math.PI/3;sp+='<line x1="0" y1="0" x2="'+(Math.cos(a)*r).toFixed(1)+'" y2="'+(Math.sin(a)*r).toFixed(1)+'" stroke="#8c1d1d" stroke-width="4" stroke-linecap="round"/>'}
+  return '<g id="'+id+'" tabindex="0" role="slider" aria-valuemin="0" aria-valuemax="100" style="cursor:grab" transform="translate('+cx+','+cy+')"><circle r="'+(r+8)+'" fill="transparent"/><g id="'+id+'-rot"><circle r="'+r+'" fill="none" stroke="#c73030" stroke-width="5"/>'+sp+'<circle r="5" fill="#c73030"/><circle cx="'+r+'" cy="0" r="3" fill="#fff"/></g></g>';
+}
+function marker(i,x,y,col,r){
+  x=+x;y=+y;var c='var('+col+')';
+  switch(i){
+    case 0:return '<circle cx="'+x+'" cy="'+y+'" r="'+r+'" fill="'+c+'"/>';
+    case 1:return '<rect x="'+(x-r)+'" y="'+(y-r)+'" width="'+2*r+'" height="'+2*r+'" fill="'+c+'"/>';
+    case 2:return '<path d="M'+x+' '+(y-r-1)+' L'+(x+r+1)+' '+(y+r)+' L'+(x-r-1)+' '+(y+r)+'Z" fill="'+c+'"/>';
+    case 3:return '<path d="M'+x+' '+(y-r-1)+' L'+(x+r+1)+' '+y+' L'+x+' '+(y+r+1)+' L'+(x-r-1)+' '+y+'Z" fill="'+c+'"/>';
+    case 4:return '<path d="M'+(x-r)+' '+y+' H'+(x+r)+' M'+x+' '+(y-r)+' V'+(y+r)+'" stroke="'+c+'" stroke-width="3" fill="none"/>';
+    default:return '<path d="M'+x+' '+(y+r+1)+' L'+(x+r+1)+' '+(y-r)+' L'+(x-r-1)+' '+(y-r)+'Z" fill="'+c+'"/>';
+  }
+}
+var SEG=[
+ ['M90,452 L90,382',12],['M90,382 L90,262',18],['M90,262 L90,150',12],['M90,150 A60,60 0 0 1 150,90',12],
+ ['M150,90 L560,90',12],['M560,90 A14,14 0 0 1 574,104',12],['M574,104 L574,194',12],['M574,194 A6,6 0 0 0 580,200',12],
+ ['M580,200 L628,200',12],['M628,200 L640,200 L640,212',12],['M640,212 L640,452',12]
+];
+function buildRig(){
+  var h='<defs><clipPath id="boardclip"><rect x="160" y="118" width="370" height="298" rx="6"/></clipPath></defs>';
+  h+='<g id="flowgrp">';
+  h+='<rect x="40" y="30" width="664" height="422" rx="3" fill="none" stroke="var(--frame)" stroke-width="6"/>';
+  h+='<text id="sel-label" x="58" y="58" font-size="14" font-weight="600" fill="var(--ink)"></text>';
+  /* hoses */
+  F.forEach(function(f,j){f.tap.forEach(function(t,k){
+    var port=2*j+1+k,px=portX(port),x0=t[0],y0=t[1],sx=x0<250?-34:34;
+    h+='<path class="hose" data-f="'+f.id+'" d="M'+x0+','+y0+' C'+(x0+sx)+','+(y0+26)+' '+px+',446 '+px+',410" fill="none" stroke="var(--hose)" stroke-width="2.2" opacity=".5"/>';
+  })});
+  /* pipes */
+  SEG.forEach(function(s){h+='<path d="'+s[0]+'" fill="none" stroke="var(--pipe)" stroke-width="'+s[1]+'"/><path class="pin" d="'+s[0]+'" fill="none" stroke="var(--pipe-in)" stroke-width="'+(s[1]-3)+'"/>'});
+  SEG.forEach(function(s){h+='<path class="water" d="'+s[0]+'" stroke-width="'+(s[1]-6)+'"/>'});
+  h+='<line x1="634" y1="206" x2="646" y2="194" stroke="var(--pipe)" stroke-width="1.6"/>';
+  /* flange rings at step changes */
+  h+='<rect x="76" y="379" width="28" height="5" fill="var(--pipe)"/><rect x="76" y="259" width="28" height="5" fill="var(--pipe)"/>';
+  /* tappings */
+  F.forEach(function(f,j){f.tap.forEach(function(t){h+='<circle cx="'+t[0]+'" cy="'+t[1]+'" r="3.4" fill="var(--ink)" stroke="var(--surface)" stroke-width="1.2"/>'})});
+  /* board */
+  h+='<g id="board"><rect x="160" y="118" width="370" height="298" rx="6" fill="var(--board)" stroke="var(--glass-line)" stroke-width="1.5"/><rect x="160" y="118" width="370" height="17" rx="6" fill="var(--frame)" opacity=".92"/>';
+  F.forEach(function(f,j){var cx=(portX(2*j+1)+portX(2*j+2))/2;h+='<text x="'+cx+'" y="130" text-anchor="middle" font-size="8.5" font-weight="600" fill="#fff" letter-spacing=".4">'+f.ab+'</text>'});
+  for(var mm=0;mm<=440;mm+=50){var y=yOf(mm);h+='<line x1="166" x2="524" y1="'+y+'" y2="'+y+'" stroke="var(--grid)" stroke-width="1"/><text x="187" y="'+(y+3)+'" font-size="8.5" text-anchor="end" fill="var(--muted)">'+mm+'</text><text x="502" y="'+(y+3)+'" font-size="8.5" fill="var(--muted)">'+mm+'</text>'}
+  h+='<text x="523" y="150" font-size="8" fill="var(--muted)" text-anchor="end"></text>';
+  for(var t=1;t<=12;t++){var x=portX(t);
+    h+='<rect x="'+(x-5)+'" y="138" width="10" height="258" rx="5" fill="var(--glass)" stroke="var(--glass-line)"/>';
+    h+='<rect class="col" id="col'+t+'" x="'+(x-3.4)+'" y="200" width="6.8" height="190" fill="var(--water)"/>';
+    h+='<rect x="'+(x-9)+'" y="396" width="18" height="15" rx="2" fill="var(--ink)"/><text x="'+x+'" y="407.5" font-size="9" font-weight="600" text-anchor="middle" fill="var(--surface)">'+t+'</text>';
+    h+='<rect class="tubehit" data-t="'+t+'" x="'+(x-12)+'" y="138" width="24" height="258" fill="transparent" style="cursor:crosshair"/>';
+  }
+  h+='<g id="pair-hl"></g></g>';
+  /* hand pump & air release */
+  h+='<g id="hp" tabindex="0" role="button" aria-label="Hand pump, raises the static level by 10 mm" style="cursor:pointer"><path d="M530,262 H536" stroke="var(--hose)" stroke-width="3"/><ellipse cx="549" cy="262" rx="13" ry="18" fill="#2b2f33"/><ellipse cx="545" cy="256" rx="4" ry="7" fill="#fff" opacity=".18"/></g><text x="549" y="292" text-anchor="middle" font-size="9.5" fill="var(--muted)">Hand pump</text>';
+  h+='<g id="ar" tabindex="0" role="button" aria-label="Air release, lowers the static level by 10 mm" style="cursor:pointer"><path d="M530,322 H540" stroke="var(--hose)" stroke-width="3"/><circle cx="549" cy="322" r="9" fill="var(--brass)" stroke="var(--ink)" stroke-width="1"/><line x1="543" y1="322" x2="555" y2="322" stroke="var(--ink)" stroke-width="2"/></g><text x="549" y="346" text-anchor="middle" font-size="9.5" fill="var(--muted)">Air release</text>';
+  /* rig valve */
+  h+='<rect x="630" y="316" width="20" height="30" rx="4" fill="var(--brass)" stroke="var(--ink)" stroke-width="1"/><line x1="650" y1="331" x2="676" y2="331" stroke="var(--pipe)" stroke-width="4"/>'+wheel('wh-rig',676,331,17)+'<text x="676" y="364" text-anchor="middle" font-size="9.5" fill="var(--muted)">Rig valve</text>';
+  /* fitting hit areas + badges */
+  F.forEach(function(f,j){
+    h+='<g class="fit" data-f="'+f.id+'" tabindex="0" role="button" aria-label="'+f.n+'" style="cursor:pointer"><circle cx="'+f.c[0]+'" cy="'+f.c[1]+'" r="22" fill="transparent"/><line x1="'+f.b[0]+'" y1="'+f.b[1]+'" x2="'+f.c[0]+'" y2="'+f.c[1]+'" stroke="var(--muted)" stroke-width="1" stroke-dasharray="2 2"/>';
+    h+='<g class="badge" id="bd-'+f.id+'"><circle cx="'+f.b[0]+'" cy="'+f.b[1]+'" r="11" fill="var(--surface)" stroke="var(--ink)" stroke-width="1.5"/><text x="'+f.b[0]+'" y="'+(f.b[1]+4.5)+'" text-anchor="middle" font-size="12.5" font-weight="700" fill="var(--ink)">'+(j+1)+'</text></g></g>';
+  });
+  h+='<circle id="ring" r="24" fill="none" stroke="var(--accent)" stroke-width="3" stroke-dasharray="5 4"/>';
+  /* sump stream */
+  h+='<path class="stream" d="M640,452 L640,478" stroke="var(--water)" stroke-width="5" stroke-dasharray="5 9" fill="none" opacity="0"/>';
+  h+='<text x="90" y="472" text-anchor="middle" font-size="9.5" fill="var(--muted)">supply</text>';
+  h+='</g>';
+  /* bench */
+  h+='<rect x="20" y="452" width="840" height="28" rx="8" fill="var(--bench-top)"/><rect x="560" y="455" width="190" height="22" rx="3" fill="var(--sump)"/><text x="655" y="470" text-anchor="middle" font-size="9.5" fill="var(--muted)">sump</text>';
+  h+='<rect x="36" y="480" width="808" height="212" rx="12" fill="var(--bench-body)" stroke="var(--bench-line)"/><text x="450" y="650" text-anchor="middle" font-family="Barlow Semi Condensed,sans-serif" font-size="30" font-weight="700" letter-spacing="6" fill="var(--bench-line)">HYDRAULICS BENCH</text>';
+  h+='<rect x="64" y="504" width="140" height="74" rx="8" fill="var(--bench-top)"/><rect x="76" y="515" width="116" height="34" rx="3" fill="var(--lcd-bg)" stroke="var(--ink)" stroke-width="1"/><text id="lcd" x="184" y="541" text-anchor="end" font-family="JetBrains Mono,monospace" font-size="22" font-weight="600" fill="var(--lcd-ink)">0.0</text><text x="80" y="526" font-size="8" fill="var(--lcd-ink)" font-family="JetBrains Mono,monospace">FLOW</text><text x="134" y="567" text-anchor="middle" font-size="11" font-weight="600" fill="#fff">L/min</text>';
+  h+=wheel('wh-bench',134,638,26)+'<text x="134" y="684" text-anchor="middle" font-size="10.5" fill="var(--muted)">Bench valve</text>';
+  h+='<g id="pump" tabindex="0" role="switch" aria-checked="false" aria-label="Pump switch" style="cursor:pointer"><rect x="270" y="500" width="80" height="108" rx="9" fill="var(--bench-line)" stroke="var(--ink)" stroke-width="1"/><text x="310" y="518" text-anchor="middle" font-size="11" font-weight="700" fill="var(--ink)" letter-spacing="1.5">PUMP</text><rect x="288" y="530" width="44" height="64" rx="5" fill="var(--sump)"/><rect id="rocker" x="291" y="560" width="38" height="31" rx="4" fill="#d6dde2"/><text x="310" y="548" text-anchor="middle" font-size="10" fill="#d6dde2" font-weight="700">I</text><text x="310" y="586" text-anchor="middle" font-size="10" fill="#444" font-weight="700" id="rk-o">O</text><circle id="lamp" cx="338" cy="512" r="4" fill="#4b5a65"/></g>';
+  /* gauge */
+  h+='<rect x="722" y="100" width="138" height="168" rx="10" fill="var(--bench-body)" stroke="var(--bench-line)"/><circle cx="791" cy="172" r="52" fill="#101418" /><circle cx="791" cy="172" r="46" fill="#f4f6f7"/>';
+  for(var g=0;g<=8;g++){var a=(-135+g*33.75)*Math.PI/180,ra=40,rb=g%2?43:38;h+='<line x1="'+(791+Math.sin(a)*ra).toFixed(1)+'" y1="'+(172-Math.cos(a)*ra).toFixed(1)+'" x2="'+(791+Math.sin(a)*rb).toFixed(1)+'" y2="'+(172-Math.cos(a)*rb).toFixed(1)+'" stroke="#222" stroke-width="1.4"/>';
+    if(g%2===0){var rt=30;h+='<text x="'+(791+Math.sin(a)*rt).toFixed(1)+'" y="'+(172-Math.cos(a)*rt+3).toFixed(1)+'" font-size="9" text-anchor="middle" fill="#222">'+(g/2)+'</text>'}}
+  h+='<text x="791" y="196" text-anchor="middle" font-size="9" fill="#222">bar</text><g id="needle" transform="translate(791,172) rotate(-135)"><line x1="0" y1="8" x2="0" y2="-38" stroke="#c73030" stroke-width="2.4" stroke-linecap="round"/></g><circle cx="791" cy="172" r="4" fill="#222"/>';
+  h+='<text x="791" y="256" text-anchor="middle" font-size="10.5" fill="var(--muted)">Supply pressure</text>';
+  rig.innerHTML=h;
+}
+buildRig();
+
+/* ---------- interaction on the rig ---------- */
+function svgPt(e){var p=rig.createSVGPoint();p.x=e.clientX;p.y=e.clientY;return p.matrixTransform(rig.getScreenCTM().inverse())}
+function bindWheel(id,cx,cy,get,set){
+  var g=$('#'+id),drag=null;
+  g.addEventListener('pointerdown',function(e){try{g.setPointerCapture(e.pointerId)}catch(x){}var p=svgPt(e);drag={a:Math.atan2(p.y-cy,p.x-cx),moved:0};g.style.cursor='grabbing'});
+  g.addEventListener('pointermove',function(e){if(!drag)return;var p=svgPt(e),a=Math.atan2(p.y-cy,p.x-cx),da=a-drag.a;if(da>Math.PI)da-=2*Math.PI;if(da<-Math.PI)da+=2*Math.PI;drag.a=a;drag.moved+=Math.abs(da);set(clamp(get()-da/(4*Math.PI),0,1))});
+  g.addEventListener('pointerup',function(e){if(drag&&drag.moved<0.15){set(clamp(get()+(e.shiftKey?-0.25:0.25),0,1))}drag=null;g.style.cursor='grab'});
+  g.addEventListener('pointercancel',function(){drag=null});
+  g.addEventListener('wheel',function(e){e.preventDefault();set(clamp(get()-Math.sign(e.deltaY)*0.05,0,1))},{passive:false});
+  g.addEventListener('keydown',function(e){if(e.key==='ArrowRight'||e.key==='ArrowUp'||e.key==='+'){set(clamp(get()+0.05,0,1));e.preventDefault()}else if(e.key==='ArrowLeft'||e.key==='ArrowDown'||e.key==='-'){set(clamp(get()-0.05,0,1));e.preventDefault()}});
+}
+function setBench(v){S.bench=v;syncSliders()} function setRig(v){S.rig=v;syncSliders()}
+bindWheel('wh-bench',134,638,function(){return S.bench},setBench);
+bindWheel('wh-rig',676,331,function(){return S.rig},setRig);
+/* ---------- pump sound (Web Audio, synthesised) ---------- */
+var AU={ctx:null,on:true,master:null,hum:null,whine:null,humG:null,whineG:null,rushG:null};
+function audioStart(){
+  if(!AU.on)return;
+  try{
+    if(!AU.ctx){
+      var C=window.AudioContext||window.webkitAudioContext;if(!C)return;
+      var c=AU.ctx=new C();AU.master=c.createGain();AU.master.gain.value=0;AU.master.connect(c.destination);
+      var lp=c.createBiquadFilter();lp.type='lowpass';lp.frequency.value=520;lp.connect(AU.master);
+      AU.hum=c.createOscillator();AU.hum.type='sawtooth';AU.hum.frequency.value=50;AU.humG=c.createGain();AU.humG.gain.value=0.05;AU.hum.connect(AU.humG);AU.humG.connect(lp);AU.hum.start();
+      AU.whine=c.createOscillator();AU.whine.type='sine';AU.whine.frequency.value=150;AU.whineG=c.createGain();AU.whineG.gain.value=0.012;AU.whine.connect(AU.whineG);AU.whineG.connect(AU.master);AU.whine.start();
+      var len=c.sampleRate*2,buf=c.createBuffer(1,len,c.sampleRate),d=buf.getChannelData(0);for(var i=0;i<len;i++)d[i]=Math.random()*2-1;
+      var ns=c.createBufferSource();ns.buffer=buf;ns.loop=true;var bp=c.createBiquadFilter();bp.type='bandpass';bp.frequency.value=900;bp.Q.value=0.6;AU.rushG=c.createGain();AU.rushG.gain.value=0;ns.connect(bp);bp.connect(AU.rushG);AU.rushG.connect(AU.master);ns.start();
+    }
+    if(AU.ctx.state==='suspended')AU.ctx.resume();
+  }catch(e){}
+}
+function audioUpdate(simVisible){
+  if(!AU.ctx)return;
+  try{
+    var t=AU.ctx.currentTime,run=AU.on&&S.pump&&simVisible,q=S.Qs;
+    AU.master.gain.setTargetAtTime(run?0.9:0,t,0.15);
+    AU.hum.frequency.setTargetAtTime(48+q*0.7,t,0.2);AU.whine.frequency.setTargetAtTime(140+q*3,t,0.2);
+    AU.humG.gain.setTargetAtTime(0.045+q*0.0007,t,0.2);AU.rushG.gain.setTargetAtTime(Math.min(1,q/QMAX)*0.05,t,0.2);
+  }catch(e){}
+}
+$('#b-sound').addEventListener('click',function(){AU.on=!AU.on;this.textContent='Sound: '+(AU.on?'On':'Off');this.setAttribute('aria-pressed',AU.on);if(AU.on)audioStart()});
+function togglePump(){S.pump=!S.pump;if(S.pump)audioStart();syncSliders()}
+$('#pump').addEventListener('click',togglePump);
+$('#pump').addEventListener('keydown',function(e){if(e.key===' '||e.key==='Enter'){e.preventDefault();togglePump()}});
+function stat(d){S.stat=clamp(S.stat+d,120,440)}
+function press(id,fn){var g=$('#'+id);g.addEventListener('click',fn);g.addEventListener('keydown',function(e){if(e.key===' '||e.key==='Enter'){e.preventDefault();fn()}})}
+press('hp',function(){stat(10)}); press('ar',function(){stat(-10)});
+$('#b-up').addEventListener('click',function(){stat(10)}); $('#b-down').addEventListener('click',function(){stat(-10)});
+
+function pick(id){S.sel=id;S.touched=true;renderSel();$('#in-h1').value='';$('#in-h2').value='';hideMsg()}
+$$('.fit',rig).forEach(function(g){g.addEventListener('click',function(){pick(g.getAttribute('data-f'))});g.addEventListener('keydown',function(e){if(e.key==='Enter'||e.key===' '){e.preventDefault();pick(g.getAttribute('data-f'))}})});
+var tip=$('#tip'),stage=$('#stage');
+function showTip(e,txt){var r=stage.getBoundingClientRect();tip.hidden=false;tip.textContent=txt;tip.style.left=(e.clientX-r.left+stage.scrollLeft+14)+'px';tip.style.top=(e.clientY-r.top+stage.scrollTop+14)+'px'}
+$$('.tubehit',rig).forEach(function(r){
+  r.addEventListener('pointermove',function(e){var t=+r.getAttribute('data-t');showTip(e,'Tube '+t+' · '+S.L[t-1].toFixed(0)+' mm')});
+  r.addEventListener('pointerleave',function(){tip.hidden=true});
+  r.addEventListener('click',function(){var t=+r.getAttribute('data-t');pick(F[Math.floor((t-1)/2)].id)});
+});
+$$('.fit',rig).forEach(function(g){var f=F.filter(function(x){return x.id===g.getAttribute('data-f')})[0];g.addEventListener('pointermove',function(e){showTip(e,f.n)});g.addEventListener('pointerleave',function(){tip.hidden=true})});
+$('#wh-bench').addEventListener('pointermove',function(e){showTip(e,'Bench valve · '+Math.round(S.bench*100)+'%')});
+$('#wh-rig').addEventListener('pointermove',function(e){showTip(e,'Rig valve · '+Math.round(S.rig*100)+'%')});
+['wh-bench','wh-rig','pump','hp','ar'].forEach(function(id){$('#'+id).addEventListener('pointerleave',function(){tip.hidden=true})});
+
+/* rail controls */
+var chips=$('#chips');
+F.forEach(function(f,j){var b=document.createElement('button');b.type='button';b.setAttribute('data-f',f.id);b.innerHTML=(j+1)+' · '+f.s;b.addEventListener('click',function(){pick(f.id)});chips.appendChild(b)});
+$('#s-bench').addEventListener('input',function(e){S.bench=e.target.value/100;syncSliders()});
+$('#s-rig').addEventListener('input',function(e){S.rig=e.target.value/100;syncSliders()});
+$('#b-pump').addEventListener('click',togglePump);
+var tween=null;
+function setFlow(q){
+  if(q===0){S.bench=0;S.pump=true;syncSliders();return}
+  S.pump=true;audioStart();S.rig=1;var to=Math.pow(q/QMAX,1/0.8),from=S.bench,t0=performance.now();tween=function(t){var k=clamp((t-t0)/700,0,1);S.bench=from+(to-from)*k;syncSliders();return k<1};
+}
+$$('[data-flow]').forEach(function(b){b.addEventListener('click',function(){setFlow(+b.getAttribute('data-flow'))})});
+function syncSliders(){
+  $('#s-bench').value=Math.round(S.bench*100);$('#s-rig').value=Math.round(S.rig*100);
+  $('#o-bench').textContent=Math.round(S.bench*100)+'%';$('#o-rig').textContent=Math.round(S.rig*100)+'%';
+  var p=$('#b-pump');p.textContent=S.pump?'Pump on':'Pump off';p.setAttribute('aria-pressed',S.pump);p.className='btn small '+(S.pump?'accent':'ghost');
+}
+$('#c-help').addEventListener('change',function(e){S.help=e.target.checked;$('#help').hidden=!S.help});
+
+/* ---------- selection render ---------- */
+function curF(){return F.filter(function(f){return f.id===S.sel})[0]}
+function renderSel(){
+  var f=curF(),j=F.indexOf(f);
+  $('#sel-name').textContent='tubes '+(2*j+1)+' and '+(2*j+2);
+  $$('#chips button').forEach(function(b){b.setAttribute('aria-pressed',b.getAttribute('data-f')===S.sel)});
+  $$('.badge',rig).forEach(function(b){var on=b.id==='bd-'+S.sel;b.firstChild.setAttribute('fill',on?'var(--accent)':'var(--surface)');b.firstChild.setAttribute('stroke',on?'var(--accent)':'var(--ink)');b.lastChild.setAttribute('fill',on?'var(--accent-ink)':'var(--ink)')});
+  $$('.hose',rig).forEach(function(h){var on=h.getAttribute('data-f')===S.sel;h.setAttribute('stroke',on?'var(--accent)':'var(--hose)');h.setAttribute('opacity',on?'1':'.5');h.setAttribute('stroke-width',on?'3.2':'2.2')});
+  var ring=$('#ring');ring.setAttribute('cx',f.c[0]);ring.setAttribute('cy',f.c[1]);
+  $('#sel-label').textContent='Selected: '+f.n;
+  var x1=portX(2*j+1),x2=portX(2*j+2);
+  $('#pair-hl').innerHTML='<rect x="'+(x1-13)+'" y="138" width="'+(x2-x1+26)+'" height="258" rx="6" fill="none" stroke="var(--accent)" stroke-width="2" stroke-dasharray="4 3"/>';
+}
+
+/* ---------- zoom reader ---------- */
+function zoomTube(cx,level,label,col){
+  var w0=level<=0?0:clamp(Math.floor(level/10)*10-10,0,400),y0=215,s=5,h='';
+  h+='<rect x="'+(cx-14)+'" y="8" width="28" height="212" rx="6" fill="var(--glass)" stroke="var(--glass-line)"/>';
+  var yl=y0-(clamp(level,w0,w0+40)-w0)*s;
+  if(level>0)h+='<rect x="'+(cx-11)+'" y="'+yl.toFixed(1)+'" width="22" height="'+(220-yl).toFixed(1)+'" fill="var(--water)" opacity=".92"/><path d="M'+(cx-11)+' '+yl.toFixed(1)+' Q'+cx+' '+(yl+4).toFixed(1)+' '+(cx+11)+' '+yl.toFixed(1)+'" stroke="var(--water)" fill="none" stroke-width="2.4"/>';
+  for(var mm=w0;mm<=w0+40;mm++){var y=y0-(mm-w0)*s,len=mm%10===0?16:(mm%5===0?11:6);
+    h+='<line x1="'+(cx-14-len)+'" x2="'+(cx-14)+'" y1="'+y+'" y2="'+y+'" stroke="var(--ink)" stroke-width="'+(mm%10===0?1.5:1)+'" shape-rendering="crispEdges"/>';
+    if(mm%10===0)h+='<text x="'+(cx-34)+'" y="'+(y+4)+'" font-size="11" text-anchor="end">'+mm+'</text>'}
+  h+='<text x="'+cx+'" y="233" font-size="11" text-anchor="middle" style="fill:var(--ink)">'+label+'</text>';
+  return h;
+}
+var zoomKey='';
+function renderZoom(force){
+  var j=F.indexOf(curF()),a=S.L[2*j],b=S.L[2*j+1];
+  var key=j+'|'+Math.floor(a/10)+'|'+Math.floor(b/10)+'|'+a.toFixed(1)+'|'+b.toFixed(1);
+  if(!force&&key===zoomKey)return;zoomKey=key;
+  $('#zoom').innerHTML=zoomTube(112,a,'Tube '+(2*j+1)+' · h₁')+zoomTube(266,b,'Tube '+(2*j+2)+' · h₂');
+  var tl=targetLevels(Qtarget(),r1(Qtarget()));
+  $('#help').textContent='Meniscus now: h₁ = '+a.toFixed(1)+' mm, h₂ = '+b.toFixed(1)+' mm';
+}
+
+/* ---------- record ---------- */
+var msgEl=$('#msg');
+function showMsg(t,k){msgEl.className='msg show '+k;msgEl.textContent=t}
+function hideMsg(){msgEl.className='msg'}
+function record(){
+  var Qt=Qtarget();
+  if(!S.pump||Qt<1){showMsg('Switch on the pump and open the valves to get a flow first.','warn');return}
+  if(!steady()){showMsg('The columns are still moving. Wait until the status shows Steady.','warn');return}
+  var f=curF(),j=F.indexOf(f),h1=parseFloat($('#in-h1').value),h2=parseFloat($('#in-h2').value);
+  if(isNaN(h1)||isNaN(h2)){showMsg('Enter both h₁ and h₂ from the magnified ruler.','warn');return}
+  var tl=targetLevels(Qt,r1(Qt)),t1=tl[2*j],t2=tl[2*j+1];
+  if(t1<=0||t2<=0){showMsg('A column has run dry at this flow. Press + Hand pump to raise the static level, let it settle and read again.','bad');return}
+  var bad=[];if(Math.abs(h1-t1)>1.5)bad.push('h₁');if(Math.abs(h2-t2)>1.5)bad.push('h₂');
+  if(bad.length){showMsg('Check '+bad.join(' and ')+' again. Your value is more than 1.5 mm from the meniscus. Zoom on the ruler and read the bottom of the curve.','bad');return}
+  var flow=r1(S.Qs),key=Math.round(flow);
+  var row={flow:flow,fid:f.id,h1:h1,h2:h2};
+  var at=-1;S.rows.forEach(function(r,i){if(Math.round(r.flow)===key&&r.fid===f.id)at=i});
+  if(at>=0)S.rows[at]=row;else S.rows.push(row);
+  S.rowSel=rowKey(row);saveRows();renderTables();
+  showMsg('Recorded for '+f.n+' at '+flow.toFixed(1)+' L/min. Head loss h₁ − h₂ = '+(h1-h2).toFixed(1)+' mm.','ok');
+  $('#in-h1').value='';$('#in-h2').value='';
+  var nx=F[(j+1)%F.length];
+}
+$('#b-rec').addEventListener('click',record);
+['#in-h1','#in-h2'].forEach(function(s){$(s).addEventListener('keydown',function(e){if(e.key==='Enter')record()})});
+
+/* ---------- table ---------- */
+function calc(r){var Q=r.flow/60000,V=Q/A1,vh=V*V/(2*G),dh=(r.h1-r.h2)/1000;return{Q:Q,V:V,vh:vh,dh:dh,K:dh/vh,Re:V*DS/NU}}
+function rowKey(r){return Math.round(r.flow)+'|'+r.fid}
+function groups(){var g=[],map={};S.rows.forEach(function(r){var k=Math.round(r.flow);if(!(k in map)){map[k]=[];g.push(k)}map[k].push(r)});
+  g.sort(function(a,b){return a-b});return g.map(function(k){var rs=map[k].slice().sort(function(a,b){return fidx(a.fid)-fidx(b.fid)});return{key:k,rows:rs}})}
+function fidx(id){for(var i=0;i<F.length;i++)if(F[i].id===id)return i;return 0}
+function fobj(id){return F[fidx(id)]}
+var HEAD='<thead><tr><th>S. No</th><th>Flow rate<br>Litre / minute</th><th>Fittings</th><th>Mano meter<br>Reading in mm<br>(h<sub>1</sub>)</th><th>Mano meter<br>Reading in mm<br>(h<sub>2</sub>)</th><th>Head loss<br>h<sub>1</sub> − h<sub>2</sub> (mm)</th><th>Flow rate<br>m³/s × 10⁻⁴</th><th>Velocity V<br>m/s</th><th>V²/2g<br>(m)</th><th>K</th><th></th></tr></thead>';
+function renderTables(){
+  var gs=groups(),b='';
+  if(!gs.length)b='<tr><td class="empty" colspan="11">No readings yet. Run the rig, read a fitting and press Record, or use “Run a demo” on the Observations tab.</td></tr>';
+  gs.forEach(function(g,gi){g.rows.forEach(function(r,ri){
+    var c=calc(r),f=fobj(r.fid),on=S.rowSel===rowKey(r);
+    b+='<tr class="data'+(on?' sel':'')+'" data-k="'+rowKey(r)+'">';
+    if(ri===0)b+='<td rowspan="'+g.rows.length+'">'+String(gi+1).padStart(2,'0')+'</td><td rowspan="'+g.rows.length+'">'+g.key+'</td>';
+    b+='<td class="fit"><span class="sw" style="background:var('+f.col+')"></span>'+f.s+'</td><td>'+r.h1+'</td><td>'+r.h2+'</td><td>'+(r.h1-r.h2).toFixed(0)+'</td><td>'+(c.Q*1e4).toFixed(2)+'</td><td>'+c.V.toFixed(3)+'</td><td>'+c.vh.toFixed(4)+'</td><td><b>'+c.K.toFixed(2)+'</b></td><td><button class="x" data-del="'+rowKey(r)+'" aria-label="Delete this row">×</button></td></tr>';
+  })});
+  var html=HEAD+'<tbody>'+b+'</tbody>';
+  $$('[data-table]').forEach(function(w){w.innerHTML='<table class="obs">'+html+'</table>'});
+  renderSheet();renderAllCalc();renderResults();renderSteps();
+}
+document.addEventListener('click',function(e){
+  var d=e.target.closest&&e.target.closest('[data-del]');
+  if(d){var k=d.getAttribute('data-del');S.rows=S.rows.filter(function(r){return rowKey(r)!==k});if(S.rowSel===k)S.rowSel=null;saveRows();renderTables();e.stopPropagation();return}
+  var tr=e.target.closest&&e.target.closest('tr.data');
+  if(tr){S.rowSel=tr.getAttribute('data-k');renderTables()}
+});
+
+/* ---------- model calculation ---------- */
+function sci(x){var e=Math.floor(Math.log10(Math.abs(x))),m=x/Math.pow(10,e);return m.toFixed(2)+' × 10'+String(e).replace(/-/g,'⁻').replace(/\d/g,function(d){return '⁰¹²³⁴⁵⁶⁷⁸⁹'[d]})}
+function renderSheet(){
+  var el=$('#sheet'),row=null;
+  S.rows.forEach(function(r){if(rowKey(r)===S.rowSel)row=r});
+  if(!row&&S.rows.length)row=S.rows[S.rows.length-1];
+  if(!row){el.innerHTML='<div><span>Select a row</span><span>Record a reading to see the worked calculation.</span></div>';return}
+  var c=calc(row),f=fobj(row.fid),L='';
+  function ln(a,b,res){L+='<div><span>'+a+'</span><span'+(res?' class="res"':'')+'>'+b+'</span></div>'}
+  ln('Fitting',f.n+', Q = '+row.flow.toFixed(1)+' L/min');
+  ln('Flow rate','Q = '+row.flow.toFixed(1)+' / 60000 = '+sci(c.Q)+' m³/s');
+  ln('Velocity','V = Q / A₁ = '+sci(c.Q)+' / 2.54 × 10⁻⁴ = '+c.V.toFixed(3)+' m/s');
+  ln('Velocity head','V²/2g = '+c.V.toFixed(3)+'² / (2 × 9.81) = '+c.vh.toFixed(4)+' m = '+(c.vh*1000).toFixed(1)+' mm');
+  ln('Head loss','Δh = h₁ − h₂ = '+row.h1+' − '+row.h2+' = '+(row.h1-row.h2).toFixed(0)+' mm = '+c.dh.toFixed(4)+' m');
+  ln('Loss coefficient','K = 2gΔh / V² = (2 × 9.81 × '+c.dh.toFixed(4)+') / '+c.V.toFixed(3)+'² = '+c.K.toFixed(3),true);
+  ln('Reynolds number','Re = V d / ν = '+c.V.toFixed(3)+' × 0.018 / 0.84 × 10⁻⁶ = '+Math.round(c.Re).toLocaleString('en-US')+(c.Re>4000?' (turbulent)':''));
+  if(row.fid==='enl'){var th=Math.pow(1-DS*DS/(DL*DL),2);ln('Theory','K<sub>L</sub> = [1 − A₁/A₂]² = [1 − 0.5625]² = '+th.toFixed(3)+'; measured is '+(c.K>=th?'+':'')+((c.K-th)/th*100).toFixed(0)+'% from theory')}
+  el.innerHTML=L;
+}
+
+function renderAllCalc(){
+  var el=$('#allcalc'),gs=groups();
+  if(!gs.length){el.innerHTML='<div class="sheet"><div><span>No readings</span><span>Record readings in the simulator, or press “Run a demo”.</span></div></div>';return}
+  var out='';
+  gs.forEach(function(g,gi){
+    var q=g.rows[0].flow,c0=calc(g.rows[0]),L='';
+    function ln(a,b,res){L+='<div><span>'+a+'</span><span'+(res?' class="res"':'')+'>'+b+'</span></div>'}
+    ln('Set '+String(gi+1).padStart(2,'0'),'Flow rate = '+q.toFixed(1)+' L/min');
+    ln('Flow rate','Q = '+q.toFixed(1)+' / 60000 = '+sci(c0.Q)+' m³/s');
+    ln('Velocity','V = Q / A₁ = '+sci(c0.Q)+' / 2.54 × 10⁻⁴ = '+c0.V.toFixed(3)+' m/s');
+    ln('Velocity head','V²/2g = '+c0.V.toFixed(3)+'² / (2 × 9.81) = '+c0.vh.toFixed(4)+' m');
+    ln('Reynolds number','Re = V d / ν = '+Math.round(c0.Re).toLocaleString('en-US'));
+    g.rows.forEach(function(r){
+      var c=calc(r),f=fobj(r.fid);
+      ln(f.s,'Δh = '+r.h1+' − '+r.h2+' = '+(r.h1-r.h2).toFixed(0)+' mm = '+c.dh.toFixed(4)+' m;  K = '+c.dh.toFixed(4)+' / '+c.vh.toFixed(4)+' = '+c.K.toFixed(3),true);
+    });
+    out+='<div class="sheet">'+L+'</div>';
+  });
+  el.innerHTML=out;
+}
+
+/* ---------- steps ---------- */
+function renderSteps(){
+  var Qt=Qtarget(),near=[10,15,20].some(function(x){return Math.abs(S.Qs-x)<0.3}),st=steady()&&Qt>1;
+  var req={};S.rows.forEach(function(r){if(fobj(r.fid).req)req[rowKey(r)]=1});var n=Math.min(15,Object.keys(req).length);
+  var gs=groups().filter(function(g){return g.rows.filter(function(r){return fobj(r.fid).req}).length>=5}).length;
+  var items=[
+    ['Switch on the pump',S.pump],
+    ['Open the bench valve and the rig valve',S.bench>.05&&S.rig>.05],
+    ['Set a flow of 10, 15 or 20 L/min',near],
+    ['Wait until the readout says Steady',st],
+    ['Pick a fitting and read its two tubes',S.touched],
+    ['Record h₁ and h₂',S.rows.length>0],
+    ['Record all five fittings at three flow rates ('+n+'/15)',gs>=3],
+    ['Open Results & Inference',S.seenResults]
+  ];
+  var done=items.filter(function(i){return i[1]}).length;
+  $('#stepcount').textContent=done+'/'+items.length;
+  $('#steps').innerHTML=items.map(function(i){return '<li class="'+(i[1]?'done':'')+'"><i></i><span>'+i[0]+'</span></li>'}).join('');
+}
+
+/* ---------- results ---------- */
+function mean(a){return a.reduce(function(s,x){return s+x},0)/a.length}
+function renderResults(){
+  var any=S.rows.length>0;$('#res-empty').hidden=any;$('#res-body').hidden=!any;
+  if(!any)return;
+  var th=Math.pow(1-DS*DS/(DL*DL),2),stats=[];
+  var h='<thead><tr><th></th><th style="text-align:left">Fitting</th><th>Readings</th><th>K mean</th><th>K range</th><th>Theory</th><th style="min-width:120px">Relative size</th></tr></thead><tbody>';
+  var maxK=0;
+  F.forEach(function(f){var ks=S.rows.filter(function(r){return r.fid===f.id}).map(function(r){return calc(r).K});stats.push({f:f,ks:ks,m:ks.length?mean(ks):null});if(ks.length)maxK=Math.max(maxK,mean(ks))});
+  var rom=['i','ii','iii','iv','v','vi'];
+  stats.forEach(function(s,i){
+    h+='<tr><td>'+rom[i]+')</td><td class="fit"><span class="sw" style="background:var('+s.f.col+')"></span>For '+s.f.n.toLowerCase().replace('(optional)','').trim()+'</td><td>'+s.ks.length+'</td>';
+    if(s.ks.length){h+='<td><b>'+s.m.toFixed(3)+'</b></td><td>'+Math.min.apply(null,s.ks).toFixed(2)+' – '+Math.max.apply(null,s.ks).toFixed(2)+'</td><td>'+(s.f.id==='enl'?th.toFixed(3):'–')+'</td><td><div class="bar"><i style="width:'+(s.m/maxK*100).toFixed(0)+'%;background:var('+s.f.col+')"></i></div></td></tr>'}
+    else h+='<td>–</td><td>–</td><td>–</td><td></td></tr>';
+  });
+  $('#res-table').innerHTML=h+'</tbody>';
+  /* chart */
+  var W=760,H=380,m={l:58,r:170,t:16,b:48},pw=W-m.l-m.r,ph=H-m.t-m.b;
+  var pts=S.rows.map(function(r){var c=calc(r);return{f:r.fid,x:c.vh*1000,y:r.h1-r.h2}});
+  var xmax=Math.max.apply(null,pts.map(function(p){return p.x}).concat([20])),ymax=Math.max.apply(null,pts.map(function(p){return p.y}).concat([20]));
+  function nice(v){var e=Math.pow(10,Math.floor(Math.log10(v))),n=v/e;return (n<=1?1:n<=2?2:n<=5?5:10)*e}
+  xmax=nice(xmax*1.05);ymax=nice(ymax*1.05);
+  var X=function(v){return m.l+v/xmax*pw},Y=function(v){return m.t+ph-v/ymax*ph};
+  var s='';
+  for(var i=0;i<=5;i++){var xv=xmax*i/5,yv=ymax*i/5;
+    s+='<line class="gl" x1="'+X(xv)+'" x2="'+X(xv)+'" y1="'+m.t+'" y2="'+(m.t+ph)+'"/><text x="'+X(xv)+'" y="'+(m.t+ph+18)+'" text-anchor="middle">'+(+xv.toFixed(1))+'</text>';
+    s+='<line class="gl" y1="'+Y(yv)+'" y2="'+Y(yv)+'" x1="'+m.l+'" x2="'+(m.l+pw)+'"/><text x="'+(m.l-8)+'" y="'+(Y(yv)+4)+'" text-anchor="end">'+(+yv.toFixed(1))+'</text>'}
+  s+='<line class="ax" x1="'+m.l+'" x2="'+(m.l+pw)+'" y1="'+(m.t+ph)+'" y2="'+(m.t+ph)+'"/><line class="ax" x1="'+m.l+'" x2="'+m.l+'" y1="'+m.t+'" y2="'+(m.t+ph)+'"/>';
+  s+='<text x="'+(m.l+pw/2)+'" y="'+(H-8)+'" text-anchor="middle" style="fill:var(--ink)">Velocity head V²/2g (mm)</text><text transform="translate(14,'+(m.t+ph/2)+') rotate(-90)" text-anchor="middle" style="fill:var(--ink)">Head loss h₁ − h₂ (mm)</text>';
+  var labels=[];
+  F.forEach(function(f,fi){
+    var P=pts.filter(function(p){return p.f===f.id});if(!P.length)return;
+    var sxx=0,sxy=0;P.forEach(function(p){sxx+=p.x*p.x;sxy+=p.x*p.y});var k=sxy/sxx,xe=Math.min(xmax,ymax/k);
+    s+='<line x1="'+X(0)+'" y1="'+Y(0)+'" x2="'+X(xe)+'" y2="'+Y(k*xe)+'" stroke="var('+f.col+')" stroke-width="1.8" opacity=".75"/>';
+    P.forEach(function(p){s+=marker(fi,X(p.x).toFixed(1),Y(p.y).toFixed(1),f.col,4.5)});
+    labels.push({y:Y(k*xe),x:X(xe),t:f.s+'  K='+k.toFixed(2),c:f.col});
+  });
+  labels.sort(function(a,b){return a.y-b.y});for(var q=1;q<labels.length;q++){if(labels[q].y-labels[q-1].y<14)labels[q].y=labels[q-1].y+14}
+  labels.forEach(function(l){s+='<text x="'+(Math.min(l.x,m.l+pw)+8)+'" y="'+(l.y+4)+'" style="fill:var('+l.c+');font-weight:600;font-size:11.5px">'+l.t+'</text>'});
+  $('#chart').innerHTML=s;
+  /* inference */
+  var ranked=stats.filter(function(s){return s.ks.length}).sort(function(a,b){return b.m-a.m});
+  var allRe=S.rows.map(function(r){return calc(r).Re}),en=stats[0];
+  var t='<ul>';
+  t+='<li>Minor head loss is caused by flow separation and turbulence when the flow changes area or direction. Energy is dissipated in eddies as heat.</li>';
+  t+='<li>Loss coefficient K = Δh (2g / V²), so Δh ∝ V². Each line on the graph is straight through the origin, which shows h<sub>L</sub> grows with the velocity head and K is nearly constant over this flow range (Re from '+Math.round(Math.min.apply(null,allRe)).toLocaleString('en-US')+' to '+Math.round(Math.max.apply(null,allRe)).toLocaleString('en-US')+', turbulent).</li>';
+  if(ranked.length>1)t+='<li>The largest loss coefficient is for the <b>'+ranked[0].f.s.toLowerCase()+'</b> (K ≈ '+ranked[0].m.toFixed(2)+') and the smallest for the <b>'+ranked[ranked.length-1].f.s.toLowerCase()+'</b> (K ≈ '+ranked[ranked.length-1].m.toFixed(2)+').</li>';
+  var lb=stats[2],sb=stats[3];if(lb.ks.length&&sb.ks.length)t+='<li>The '+(sb.m>lb.m?'short bend loses more than the long bend ('+sb.m.toFixed(2)+' against '+lb.m.toFixed(2)+')':'long bend loses more than the short bend, which is unusual and worth re-checking')+'. A gradual turn gives the flow less chance to separate from the wall.</li>';
+  if(en.ks.length)t+='<li>Sudden enlargement: measured K ≈ '+en.m.toFixed(2)+' against the theoretical '+th.toFixed(3)+' from [1 − A₁/A₂]². Small readings of a few millimetres carry a large percentage error.</li>';
+  t+='<li>Friction factor form, for the record: f = Δh (2gd / lV²), so Δh ∝ V², Δh ∝ l and Δh ∝ 1/d.</li></ul>';
+  $('#infer').innerHTML=t;
+}
+$('#b-copy').addEventListener('click',function(){
+  var lines=['Fitting\tReadings\tK mean'];
+  F.forEach(function(f){var ks=S.rows.filter(function(r){return r.fid===f.id}).map(function(r){return calc(r).K});if(ks.length)lines.push(f.n+'\t'+ks.length+'\t'+mean(ks).toFixed(3))});
+  var txt=lines.join('\n'),ok=function(){$('#copied').textContent='Copied'};
+  try{navigator.clipboard.writeText(txt).then(ok,function(){fallback(txt)})}catch(e){fallback(txt)}
+  function fallback(t){var ta=document.createElement('textarea');ta.value=t;document.body.appendChild(ta);ta.select();try{document.execCommand('copy');ok()}catch(e){$('#copied').textContent='Select the table and copy it'}document.body.removeChild(ta)}
+});
+
+/* demo + clear */
+function demo(){
+  var keep=S.stat;S.stat=340;
+  [10,15,20].forEach(function(q){var tl=targetLevels(q,r1(q));F.forEach(function(f,j){
+    var row={flow:q,fid:f.id,h1:Math.round(tl[2*j]),h2:Math.round(tl[2*j+1])};
+    var at=-1;S.rows.forEach(function(r,i){if(rowKey(r)===rowKey(row))at=i});if(at>=0)S.rows[at]=row;else S.rows.push(row)})});
+  S.stat=keep;S.rowSel=null;saveRows();renderTables();
+}
+$('#b-demo').addEventListener('click',demo);$('#b-demo2').addEventListener('click',function(){demo()});
+function clearRows(){S.rows=[];S.rowSel=null;saveRows();renderTables()}
+$('#b-clear').addEventListener('click',clearRows);$('#b-clear2').addEventListener('click',clearRows);
+$('#b-reset').addEventListener('click',function(){tween=null;S.pump=false;S.bench=0;S.rig=0;S.stat=340;syncSliders();hideMsg();$('#in-h1').value='';$('#in-h2').value=''});
+
+/* ---------- viva ---------- */
+var Q=[
+ {q:'Minor losses in a pipe system mainly arise from',o:['Wall friction along long straight pipes','A change in velocity magnitude or direction that forms eddies','A change in fluid temperature','Pump inefficiency'],a:1,e:'Fittings and area changes force the flow to separate and form eddies, which dissipate energy as heat.'},
+ {q:'The minor loss is written as',o:['h = K V / 2g','h = K V² / 2g','h = K g V² / 2','h = 2g V² / K'],a:1,e:'Minor losses vary as the square of velocity, so they are a fraction K of the velocity head V²/2g.'},
+ {q:'In your calculation of K, V is the velocity in',o:['The larger 24 mm pipe','The smaller 18 mm pipe','The average of both pipes','The supply hose'],a:1,e:'The sheet uses V = Q / A₁ with A₁ the smaller pipe area, for every fitting.'},
+ {q:'At 20 L/min in the 18 mm pipe, the velocity is about',o:['0.65 m/s','1.31 m/s','2.62 m/s','0.33 m/s'],a:1,e:'Q = 20/60000 = 3.33 × 10⁻⁴ m³/s and A₁ = 2.54 × 10⁻⁴ m², so V = 1.31 m/s.'},
+ {q:'Which fitting on this rig gives the largest K?',o:['Long bend','Sudden enlargement','90° elbow','Sudden contraction'],a:2,e:'The sharp 90° elbow separates the flow most strongly, with K near 1.4. The contraction comes next.'},
+ {q:'Why is K for a short bend larger than for a long bend?',o:['The short bend is made of a rougher material','A gradual turn gives the flow less chance to separate from the wall','Water is heavier in a short bend','The manometer reads high on short bends'],a:1,e:'A larger bend radius turns the flow gently, so separation and eddies are weaker.'},
+ {q:'Why must you wait for the columns to settle before reading?',o:['The water needs to warm up','h₁ − h₂ is only valid for one steady flow rate','The tubes need to be filled with air','The pump takes time to prime only once'],a:1,e:'While the levels move, h₁ and h₂ belong to different flow rates, so the head loss is meaningless.'},
+ {q:'If the flow rate through a fitting is doubled, the head loss becomes about',o:['The same','Twice as large','Four times as large','Half as large'],a:2,e:'h = K V²/2g, so doubling V multiplies the loss by four when K stays constant.'},
+ {q:'For the sudden enlargement here, A₁/A₂ = 0.5625. The theoretical K is',o:['0.191','0.563','0.438','0.810'],a:0,e:'K = [1 − A₁/A₂]² = (1 − 0.5625)² = 0.191.'},
+ {q:'At 20 L/min the Reynolds number in the 18 mm pipe is about',o:['280 (laminar)','2,800 (laminar)','28,000 (turbulent)','2,800,000 (turbulent)'],a:2,e:'Re = V d / ν = 1.31 × 0.018 / 0.84 × 10⁻⁶ ≈ 28,000, well into turbulent flow.'},
+ {q:'Why can K be treated as a constant in this experiment?',o:['Because the pipe never changes','K is independent of velocity at high Reynolds number for a given geometry','Because Δh does not depend on velocity','Because water is incompressible only at 28 °C'],a:1,e:'At high Re the loss is set by geometry, so K is constant and Δh simply scales with V².'}
+];
+(function(){
+  var qz=$('#quiz');
+  Q.forEach(function(x,i){
+    var d=document.createElement('div');d.className='q';d.id='q'+i;
+    d.innerHTML='<h4>'+(i+1)+'. '+x.q+'</h4>'+x.o.map(function(o,k){return '<label><input type="radio" name="q'+i+'" value="'+k+'"> <span>'+o+'</span></label>'}).join('')+'<div class="row" style="margin-top:8px"><button class="btn small ghost" data-check="'+i+'">Check answer</button></div><div class="why"></div>';
+    qz.appendChild(d);
+  });
+  qz.addEventListener('click',function(e){
+    var b=e.target.closest('[data-check]');if(!b)return;var i=+b.getAttribute('data-check'),d=$('#q'+i),sel=d.querySelector('input:checked');
+    if(!sel){d.querySelector('.why').style.display='block';d.querySelector('.why').textContent='Pick an answer first.';return}
+    var k=+sel.value;d.classList.add('done');d.setAttribute('data-ok',k===Q[i].a?'1':'0');
+    $$('label',d).forEach(function(l,n){l.classList.remove('right','wrong');if(n===Q[i].a)l.classList.add('right');else if(n===k)l.classList.add('wrong')});
+    d.querySelector('.why').style.display='';d.querySelector('.why').textContent=(k===Q[i].a?'Correct. ':'Not quite. ')+Q[i].e;
+  });
+  $('#b-score').addEventListener('click',function(){var done=$$('.q.done').length,ok=$$('.q[data-ok="1"]').length;$('#score').textContent=ok+' / '+Q.length+' correct'+(done<Q.length?' ('+(Q.length-done)+' unchecked)':'')});
+})();
+
+/* ---------- flow animation ---------- */
+var A={sel:'enl',Q:15,paused:false,eddies:true,geo:null,col:null,fr:0};
+try{if(window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches)A.paused=true}catch(e){}
+var acv=$('#acv'),actx=acv.getContext('2d');
+function sm(x){x=clamp(x,0,1);return x*x*(3-2*x)}
+var ATXT={
+ enl:{t:'Sudden enlargement',p:'The fast jet leaving the narrow pipe cannot spread out at once. It separates at the step and the gap fills with rotating eddies. Fast water mixing with slow water turns kinetic energy into turbulence and then heat.',n:['Speed drops from V to V₁ as the area grows, by continuity.','The eddies are where the energy is lost.','Theory: h_L = (V − V₁)²/2g, so K = [1 − A₁/A₂]².']},
+ con:{t:'Sudden contraction',p:'Water speeds up as it funnels into the narrow pipe. The jet keeps narrowing just past the entry to a vena contracta, then has to spread out again. Eddies sit in the corners ahead of the step and around the jet.',n:['The vena contracta is thinner than the pipe itself.','Most of the loss comes from the re-expansion after it.','K is larger than for the enlargement.']},
+ lng:{t:'Long bend',p:'A large radius turns the flow gently. Only a thin separation zone forms on the inside of the bend, so the eddy is small and the loss is low.',n:['Smooth turn, thin eddy.','Lowest K of the bends.','Friction on the longer path adds a little.']},
+ sht:{t:'Short bend',p:'A tighter radius forces a sharper turn. Water at the inner wall cannot follow, separates, and leaves a bigger eddy that squeezes the flow toward the outer wall.',n:['The squeezed stream speeds up and mixes more.','A larger eddy gives a larger K than the long bend.','Most of the loss happens after the bend.']},
+ elb:{t:'90° elbow',p:'A sharp 90° corner. The flow separates at the inner corner and a large recirculation zone fills much of the pipe after the turn, while the main stream hugs the outer wall.',n:['Large, strong eddy.','Highest K of the five fittings in this experiment.']},
+ mit:{t:'Mitre bend',p:'Two straight pipes cut at 45° and joined, so the corner is sharp inside and out. The separation zone on the inside is as large as for an elbow.',n:['Sharp corner, large eddy.','K is close to that of the elbow.']}
+};
+function buildGeo(id){
+  var Wd=640,cy=150,g={id:id,eds:[],ann:[]};
+  if(id==='enl'||id==='con'){
+    var w1=34,w2=64,xs=id==='enl'?210:360,weff,a=id==='enl'?w1:w2,b=id==='enl'?w2:w1;
+    if(id==='enl'){var Lr=190;weff=function(x){return x<xs?w1:w1+(w2-w1)*sm((x-xs)/Lr)};
+      [-1,1].forEach(function(sg){var c=[xs+0.5*Lr,cy+sg*(w1+(w2-w1)*0.55)],ea=0.42*Lr,eb=(w2-w1)*0.45;g.eds.push({n:34,dir:sg<0?-1:1,a:ea,b:eb,pt:function(th,r){return[c[0]+ea*Math.cos(th)*r,c[1]+eb*Math.sin(th)*r]}})});
+      g.ann=[{x:14,y:cy-w1-10,t:'narrow pipe: high V'},{x:Wd-14,y:cy-w2-10,t:'wide pipe: low V₁',al:'right'},{x:xs+30,y:cy+w2+20,t:'eddies'}];
+    }else{var wvc=w1*0.64;weff=function(x){if(x<xs-170)return w2;if(x<xs+40)return w2+(wvc-w2)*sm((x-(xs-170))/210);return wvc+(w1-wvc)*sm((x-(xs+40))/150)};
+      [-1,1].forEach(function(sg){
+        var c1=[xs-44,cy+sg*49],c2=[xs+90,cy+sg*29];
+        g.eds.push({n:26,dir:sg<0?-1:1,a:44,b:13,pt:function(th,r){return[c1[0]+44*Math.cos(th)*r,c1[1]+13*Math.sin(th)*r]}});
+        g.eds.push({n:14,dir:sg<0?-1:1,a:60,b:4.5,pt:function(th,r){return[c2[0]+60*Math.cos(th)*r,c2[1]+4.5*Math.sin(th)*r]}});
+      });
+      g.ann=[{x:14,y:cy-w2-10,t:'wide pipe: low V'},{x:Wd-14,y:cy-w1-10,t:'narrow pipe: high V',al:'right'},{x:xs-120,y:cy+w2+20,t:'corner eddies'},{x:xs+20,y:cy+w2+20,t:'vena contracta'}];
+    }
+    g.L=Wd;g.pos=function(s,l){return[s,cy+(2*l-1)*weff(s)*0.9]};g.spd=function(s){return w1/weff(s)};
+    g.walls=function(x,c){
+      x.beginPath();x.moveTo(0,cy-a);x.lineTo(xs,cy-a);x.lineTo(xs,cy-b);x.lineTo(Wd,cy-b);x.lineTo(Wd,cy+b);x.lineTo(xs,cy+b);x.lineTo(xs,cy+a);x.lineTo(0,cy+a);x.closePath();
+      x.globalAlpha=.1;x.fillStyle=c.water;x.fill();x.globalAlpha=1;x.lineWidth=5;x.strokeStyle=c.pipe;x.lineJoin='miter';
+      x.beginPath();x.moveTo(0,cy-a);x.lineTo(xs,cy-a);x.lineTo(xs,cy-b);x.lineTo(Wd,cy-b);x.stroke();
+      x.beginPath();x.moveTo(0,cy+a);x.lineTo(xs,cy+a);x.lineTo(xs,cy+b);x.lineTo(Wd,cy+b);x.stroke();
+    };
+  }else{
+    var P={lng:[100,.14],sht:[48,.34],elb:[42,.5],mit:[34,.56]}[id],R=P[0],sep=P[1],Wh=34,y0=96,Ax=300,yEnd=292,arcL=R*Math.PI/2,Lt=Ax+arcL+(yEnd-y0-R);
+    var C=function(s){if(s<=Ax)return[s,y0,1,0];var sa=s-Ax;if(sa<=arcL){var ph=sa/R;return[Ax+R*Math.sin(ph),y0+R-R*Math.cos(ph),Math.cos(ph),Math.sin(ph)]}return[Ax+R,y0+R+(sa-arcL),0,1]};
+    var pos=function(s,o){var c=C(s);return[c[0]-c[3]*o,c[1]+c[2]*o]};
+    var bump=function(s){return Math.min(sm((s-Ax)/arcL),1-sm((s-(Ax+arcL+30))/150))};
+    var fw=function(s){return 1-sep*bump(s)};
+    g.L=Lt;g.pos=function(s,l){return pos(s,-Wh+l*2*Wh*fw(s))};g.spd=function(s){return 1/fw(s)};
+    var inner=[],outer=[];for(var s=0;s<=Lt;s+=4){inner.push(pos(s,Wh));outer.push(pos(s,-Wh))}
+    if(id==='mit')outer=[[0,y0-Wh],[Ax+2*Wh,y0-Wh],[Ax+2*Wh,yEnd]];
+    g.walls=function(x,c){
+      x.beginPath();outer.forEach(function(p,i){i?x.lineTo(p[0],p[1]):x.moveTo(p[0],p[1])});for(var i=inner.length-1;i>=0;i--)x.lineTo(inner[i][0],inner[i][1]);x.closePath();
+      x.globalAlpha=.1;x.fillStyle=c.water;x.fill();x.globalAlpha=1;x.lineWidth=5;x.strokeStyle=c.pipe;x.lineJoin='miter';
+      x.beginPath();outer.forEach(function(p,i){i?x.lineTo(p[0],p[1]):x.moveTo(p[0],p[1])});x.stroke();
+      x.beginPath();inner.forEach(function(p,i){i?x.lineTo(p[0],p[1]):x.moveTo(p[0],p[1])});x.stroke();
+      if(id==='mit'){x.lineWidth=2;x.beginPath();x.moveTo(Ax,y0+Wh);x.lineTo(Ax+2*Wh,y0-Wh);x.stroke()}
+    };
+    var se=Ax+arcL+55,Ce=C(se),oc=Wh-sep*Wh*0.9,ea=62,eb=Math.max(3,sep*Wh*0.9);
+    g.eds.push({n:Math.round(10+sep*60),dir:1,a:ea,b:eb,pt:function(th,r){var o=oc+eb*Math.sin(th)*r,u=ea*Math.cos(th)*r;return[Ce[0]+Ce[2]*u-Ce[3]*o,Ce[1]+Ce[3]*u+Ce[2]*o]}});
+    var ep=pos(se,Wh);
+    g.ann=[{x:14,y:y0-Wh-10,t:'inflow'},{x:ep[0]-12,y:ep[1]+4,t:'eddy',al:'right'},{x:Ax+R+Wh+10,y:y0+R+Wh+20,t:'faster, hugs outer wall'}];
+  }
+  g.mp=[];for(var i=0;i<7;i++)for(var j=0;j<22;j++)g.mp.push({l:(i+0.5)/7,s:(j+Math.random())*g.L/22});
+  g.ep=[];g.eds.forEach(function(e,k){for(var j=0;j<e.n;j++)g.ep.push({k:k,th:Math.random()*6.283,r:0.2+0.75*Math.random()})});
+  return g;
+}
+function animColors(){var cs=getComputedStyle(document.documentElement);function v(n){return cs.getPropertyValue(n).trim()}A.col={water:v('--water'),accent:v('--accent'),pipe:v('--pipe'),stage:v('--stage'),ink:v('--ink'),muted:v('--muted')}}
+function meanKf(id){var ks=S.rows.filter(function(r){return r.fid===id}).map(function(r){return calc(r).K});return ks.length?mean(ks):null}
+function animStep(dt){
+  var W=Math.max(300,acv.clientWidth),H=Math.round(W*420/640),dpr=window.devicePixelRatio||1;
+  if(acv.width!==Math.round(W*dpr)||acv.height!==Math.round(H*dpr)){acv.width=Math.round(W*dpr);acv.height=Math.round(H*dpr);acv.style.height=H+'px'}
+  if(!A.geo)A.geo=buildGeo(A.sel);
+  if(!A.col||(++A.fr%40===0))animColors();
+  var g=A.geo,c=A.col,x=actx,U0=40+A.Q*8;
+  if(!A.paused){
+    g.mp.forEach(function(p){p.s+=U0*g.spd(p.s)*dt;if(p.s>g.L)p.s-=g.L});
+    g.ep.forEach(function(p){var e=g.eds[p.k];p.th+=e.dir*0.6*U0/((e.a+e.b)/2)*(1.15-0.6*p.r)*dt});
+  }
+  x.setTransform(W*dpr/640,0,0,W*dpr/640,0,0);x.fillStyle=c.stage;x.fillRect(0,0,640,420);
+  g.walls(x,c);
+  if(A.eddies){x.fillStyle=c.accent;x.globalAlpha=.13;g.eds.forEach(function(e){x.beginPath();for(var i=0;i<=40;i++){var p=e.pt(i/40*6.283,1);i?x.lineTo(p[0],p[1]):x.moveTo(p[0],p[1])}x.closePath();x.fill()});x.globalAlpha=1}
+  x.lineCap='round';x.lineWidth=2.4;x.strokeStyle=c.water;
+  g.mp.forEach(function(p){var s0=Math.max(0,p.s-U0*g.spd(p.s)*0.07),a=g.pos(s0,p.l),b=g.pos(p.s,p.l);x.beginPath();x.moveTo(a[0],a[1]);x.lineTo(b[0],b[1]);x.stroke()});
+  x.strokeStyle=c.accent;
+  g.ep.forEach(function(p){var e=g.eds[p.k],d=e.dir*0.08*(1.15-0.6*p.r)*2,a=e.pt(p.th-d,p.r),b=e.pt(p.th,p.r);x.beginPath();x.moveTo(a[0],a[1]);x.lineTo(b[0],b[1]);x.stroke()});
+  x.font='12px Barlow,system-ui,sans-serif';x.fillStyle=c.muted;
+  g.ann.forEach(function(n){x.textAlign=n.al||'left';x.fillText(n.t,n.x,n.y)});
+  /* energy line */
+  var f=fobj(A.sel),K=meanKf(A.sel)||f.k0,hl=K*vhmm(A.Q),D=clamp(hl*0.4,5,70),y0e=330,xa=300,xb=360;
+  var ey=function(px){return y0e+0.012*(px-20)+(px<=xa?0:(px>=xb?D:D*sm((px-xa)/(xb-xa))))};
+  x.strokeStyle=c.muted;x.lineWidth=1;x.setLineDash([]);x.beginPath();x.moveTo(20,300);x.lineTo(20,415);x.lineTo(620,415);x.stroke();
+  x.setLineDash([4,4]);x.beginPath();x.moveTo(xa,ey(xa));x.lineTo(620,ey(xa)+0.012*(620-xa));x.stroke();x.setLineDash([]);
+  x.lineWidth=3.5;x.strokeStyle=c.water;x.beginPath();for(var px=20;px<=620;px+=4){var py=ey(px);px===20?x.moveTo(px,py):x.lineTo(px,py)}x.stroke();
+  x.strokeStyle=c.accent;x.lineWidth=2;var ax=500,ya=ey(xa)+0.012*(ax-xa),yb=ey(ax);x.beginPath();x.moveTo(ax,ya);x.lineTo(ax,yb);x.stroke();
+  x.fillStyle=c.accent;x.beginPath();x.moveTo(ax,yb);x.lineTo(ax-4,yb-8);x.lineTo(ax+4,yb-8);x.closePath();x.fill();
+  x.font='600 12px Barlow,system-ui,sans-serif';x.textAlign='center';x.fillText('lost as heat',ax-8,Math.min(410,yb+22));
+  x.fillStyle=c.muted;x.font='12px Barlow,system-ui,sans-serif';x.fillText('Total energy of the flow',28,316);x.textAlign='right';x.fillText('distance along the pipe →',616,409);
+  x.fillStyle=c.ink;x.font='600 13px JetBrains Mono,ui-monospace,monospace';x.fillText('h_L = K·V²/2g = '+hl.toFixed(0)+' mm   (K ≈ '+K.toFixed(2)+')',616,318);
+}
+function animText(){var t=ATXT[A.sel];$('#a-title').textContent=t.t;$('#a-text').textContent=t.p;$('#a-notes').innerHTML=t.n.map(function(n){return '<li>'+n+'</li>'}).join('');
+  $$('#achips button').forEach(function(b){b.setAttribute('aria-pressed',b.getAttribute('data-f')===A.sel)})}
+function animPick(id){A.sel=id;A.geo=null;animText()}
+(function(){var ch=$('#achips');F.forEach(function(f,j){var b=document.createElement('button');b.type='button';b.setAttribute('data-f',f.id);b.textContent=(j+1)+' · '+f.s;b.addEventListener('click',function(){animPick(f.id)});ch.appendChild(b)});
+  $('#a-q').addEventListener('input',function(e){A.Q=+e.target.value;$('#a-qo').textContent=e.target.value});
+  $('#a-ed').addEventListener('change',function(e){A.eddies=e.target.checked});
+  function pl(){$('#a-pause').textContent=A.paused?'Play':'Pause'}pl();
+  $('#a-pause').addEventListener('click',function(){A.paused=!A.paused;pl()});
+  $('#b-why').addEventListener('click',function(){animPick(S.sel);show('animation')});
+  animText()})();
+
+/* ---------- theme ---------- */
+var themes=['auto','light','dark'],tm='auto';
+try{var st0=localStorage.getItem('minor-loss-theme');if(themes.indexOf(st0)>=0)tm=st0}catch(e){}
+function applyTheme(){
+  var r=document.documentElement;if(tm==='auto')r.removeAttribute('data-theme');else r.setAttribute('data-theme',tm);
+  $('#b-theme').textContent='Theme: '+tm.charAt(0).toUpperCase()+tm.slice(1);
+}
+$('#b-theme').addEventListener('click',function(){tm=themes[(themes.indexOf(tm)+1)%3];applyTheme();try{localStorage.setItem('minor-loss-theme',tm)}catch(e){}});
+applyTheme();
+
+/* ---------- tabs ---------- */
+function show(id){
+  $$('#tabs button').forEach(function(b){b.setAttribute('aria-selected',b.getAttribute('data-tab')===id)});
+  ['aim','theory','animation','procedure','simulator','observations','results','viva'].forEach(function(t){$('#p-'+t).hidden=t!==id});
+  if(id==='results')S.seenResults=true;
+  if(id==='simulator')renderZoom(true);
+  renderTables();window.scrollTo({top:0});
+}
+$$('#tabs button').forEach(function(b){b.addEventListener('click',function(){show(b.getAttribute('data-tab'))})});
+$$('[data-go]').forEach(function(b){b.addEventListener('click',function(){show(b.getAttribute('data-go'))})});
+
+/* ---------- loop ---------- */
+var last=performance.now(),acc=0;
+function frame(t){
+  var dt=Math.min(0.3,(t-last)/1000);last=t;
+  if(tween&&!tween(t))tween=null;
+  var Qt=Qtarget();S.Qs+=(Qt-S.Qs)*(1-Math.exp(-dt/0.6));if(Math.abs(Qt-S.Qs)<0.004)S.Qs=Qt;
+  var tl=targetLevels(S.Qs,r1(Qt)),kk=1-Math.exp(-dt/0.35);
+  for(var i=0;i<12;i++){var tv=clamp(tl[i],0,440);S.L[i]+=(tv-S.L[i])*kk;if(Math.abs(tv-S.L[i])<0.02)S.L[i]=tv}
+  var simVisible=!$('#p-simulator').hidden;
+  if(simVisible){
+    for(var n=1;n<=12;n++){var y=yOf(S.L[n-1]);var c=document.getElementById('col'+n);c.setAttribute('y',y.toFixed(2));c.setAttribute('height',Math.max(0,392-y).toFixed(2))}
+    var fl=S.Qs>0.3;rig.classList.toggle('flowing',fl);rig.style.setProperty('--dd',(1.3*10/Math.max(S.Qs,1.5)).toFixed(2)+'s');
+    $('#lcd').textContent=S.Qs.toFixed(1);
+    $('#wh-bench-rot').setAttribute('transform','rotate('+(-S.bench*720)+')');$('#wh-rig-rot').setAttribute('transform','rotate('+(-S.rig*720)+')');
+    $('#wh-bench').setAttribute('aria-valuenow',Math.round(S.bench*100));$('#wh-rig').setAttribute('aria-valuenow',Math.round(S.rig*100));
+    $('#rocker').setAttribute('y',S.pump?'534':'560');$('#lamp').setAttribute('fill',S.pump?'#3ddc6a':'#4b5a65');$('#pump').setAttribute('aria-checked',S.pump);
+    var P=S.pump?2.5-0.045*S.Qs:0;$('#needle').setAttribute('transform','translate(791,172) rotate('+(-135+P/4*270)+')');
+    acc+=dt;if(acc>0.1){acc=0;
+      var v=(S.Qs/60000)/A1;$('#r-q').textContent=S.Qs.toFixed(1);$('#r-v').textContent=v.toFixed(3);$('#r-vh').textContent=(v*v/(2*G)*1000).toFixed(1);$('#r-re').textContent=Math.round(v*DS/NU).toLocaleString('en-US');
+      var st=$('#status'),sd=steady();st.className='status '+(!S.pump?'':(Qt<0.3?'':(sd?'steady':'settle')));st.textContent=!S.pump?'Pump off':(Qt<0.3?'No flow':(sd?'Steady':'Settling…'));
+      $('#o-stat').textContent=S.stat+' mm';$('#rec-flow').textContent=S.pump&&Qt>1?'at '+r1(S.Qs).toFixed(1)+' L/min':'';
+      renderZoom(false);renderSteps();
+    }
+  }
+  if(!$('#p-animation').hidden)animStep(dt);
+  audioUpdate(simVisible);
+  requestAnimationFrame(frame);
+}
+syncSliders();renderSel();renderTables();renderZoom(true);
+requestAnimationFrame(frame);
+})();
+</script>
+</body></html>
